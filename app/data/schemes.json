@@ -1,0 +1,60 @@
+[
+  {
+    "id": "pm-kisan",
+    "name": "PM-KISAN",
+    "name_hi": "PM-KISAN",
+    "description": "Income support of ₹6,000 per year to farmer families",
+    "description_hi": "वार्षिक ₹6,000 की आय सहायता किसान परिवारों को",
+    "eligibility": {
+      "min_landholding": 0,
+      "max_landholding": 2,
+      "min_income": 0,
+      "max_income": "200000",
+      "resident_for_years": 5
+    },
+    "benefits": ["₹6000 annual", "Direct bank transfer"],
+    "benefits_hi": ["₹6000 वार्षिक", "डायरेक्ट बैंक ट्रांसफर"],
+    "documents_required": ["Aadhaar", "Land records", "Income certificate"],
+    "documents_required_hi": ["आधार", "भूमि अभिलेख", "आय प्रमाण पत्र"],
+    "category": "farmer",
+    "state_coverage": ["ALL"]
+  },
+  {
+    "id": "ayushman",
+    "name": "Ayushman Bharat PM-JAY",
+    "name_hi": "आयुष्मान भारत PM-JAY",
+    "description": "Health insurance of ₹5 lakh for poor families",
+    "description_hi": "गरीब परिवारों के लिए ₹5 लाख स्वास्थ्य बीमा",
+    "eligibility": {
+      "min_income": 0,
+      "max_income": "300000",
+      "resident_for_years": 3,
+      "caste": ["SC", "ST", "OBC"]
+    },
+    "benefits": ["₹5 lakh coverage", "Empaneled hospitals"],
+    "benefits_hi": ["₹5 लाख कवरेज", "पैनल अस्पताल"],
+    "documents_required": ["Aadhaar", "Ration card", "Caste certificate"],
+    "documents_required_hi": ["आधार", "राशन कार्ड", "जाति प्रमाण पत्र"],
+    "category": "health",
+    "state_coverage": ["ALL"]
+  },
+  {
+    "id": "mgnrega",
+    "name": "MGNREGA",
+    "name_hi": "मनरेगा",
+    "description": "100 days guaranteed wage employment",
+    "description_hi": "100 दिनों की गारंटीकृत रोजगार",
+    "eligibility": {
+      "age_min": 18,
+      "age_max": "60",
+      "resident_for_years": 1,
+      "category": ["rural"]
+    },
+    "benefits": ["₹Daily wage", "Job card"],
+    "benefits_hi": ["₹दैनिक मजदूरी", "जॉब कार्ड"],
+    "documents_required": ["Aadhaar", "Address proof", "Job card"],
+    "documents_required_hi": ["आधार", "पता प्रमाण", "जॉब कार्ड"],
+    "category": "employment",
+    "state_coverage": ["ALL"]
+  }
+]
