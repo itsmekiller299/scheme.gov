@@ -19,8 +19,9 @@ Multilingual Welfare Scheme Discovery Platform. Public users can search schemes 
 
 - **Scheme Discovery** — Filter by income, category (`farmer`/`health`/`employment`), state. Score + matching factors. Data from MongoDB `schemes` (seeded from `app/data/schemes.json`).
 - **Apply with Documents** — Each scheme shows benefits, eligibility, and **Required Documents** in English & Hindi with checklist. Submit → `applications` collection.
+- **Document Uploading System** — Per-document file input (PDF/JPG/PNG/WebP, max 5MB). `POST /api/upload` → saves to `public/uploads/` → returns `fileUrl`; linked in `applications.documents[].fileUrl` and viewable via `View` links.
 - **Public Auth** — Register & Login for customer service. Passwords hashed with `bcryptjs` → `users` collection.
-- **Grievance & Applications** — Track grievances and view all applications. DB status badge on Home (`GET /api/status`).
+- **Grievance & Applications** — Track grievances and view all applications (with uploaded file links). DB status badge on Home (`GET /api/status`).
 
 ## Tech Stack
 
@@ -67,8 +68,10 @@ MONGODB_URI=mongodb://127.0.0.1:27017/hackathon-ai-welfare
 | POST | `/api/search` | Search schemes `{language,income,category,state}` |
 | GET | `/api/schemes?id=pm-kisan` | Get single scheme |
 | GET | `/api/schemes` | List all schemes |
-| POST | `/api/applications` | Apply for scheme |
-| GET | `/api/applications?email=` | List applications |
+| POST | `/api/upload` | Upload document (`multipart`: `file` + `docName`) → `public/uploads` |
+| GET | `/api/upload` | List uploaded files |
+| POST | `/api/applications` | Apply for scheme (with `fileUrl` per doc) |
+| GET | `/api/applications?email=` | List applications (with `fileUrl` links) |
 | POST | `/api/grievances` | Submit grievance |
 | GET | `/api/grievances?id=` | Get grievance |
 | GET | `/api/status` | DB health `users/schemes/grievances` |
@@ -80,13 +83,24 @@ app/
   page.tsx              # Home + search
   login/page.tsx        # Login
   register/page.tsx     # Public register
-  apply/[id]/page.tsx   # Apply with docs checklist
-  applications/page.tsx # My applications
+  apply/[id]/page.tsx   # Apply with docs upload (file input → /api/upload)
+  applications/page.tsx # My applications (with file View links)
   grievance/page.tsx    # Grievance
-  api/                  # Auth, search, schemes, applications, grievances, status, seed
-  lib/mongodb.ts        # Mongoose connection
-  models/               # User, Scheme, Grievance, Application
+  api/
+    auth/               # login, register
+    search/             # POST search
+    schemes/            # GET single/list
+    upload/             # POST multipart → public/uploads
+    applications/       # POST with fileUrl, GET list
+    grievances/         # POST/GET
+    status/ seed/       # health, seed
+  lib/mongodb.ts        # Mongoose connection (cache + 2s timeout)
+  models/               # User, Scheme, Grievance, Application (documents[].fileUrl)
   components/Navbar.tsx # Home/Applications/Grievance + auth
+public/
+  uploads/              # Uploaded docs (5MB max, PDF/JPG/PNG/WebP) + .gitkeep
+  gov-emblem.png        # Favicon source
+  favicon.ico           # Gov emblem
 ```
 
 ---
