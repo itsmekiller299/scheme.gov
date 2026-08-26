@@ -42,6 +42,7 @@ export default function ApplyPage() {
     address: "",
   });
   const [docsChecked, setDocsChecked] = React.useState<Record<string, boolean>>({});
+  const [docFiles, setDocFiles] = React.useState<Record<string, { url: string; name: string; uploading?: boolean; error?: string }>>({});
 
   React.useEffect(() => {
     async function load() {
@@ -71,6 +72,23 @@ export default function ApplyPage() {
     setDocsChecked((prev) => ({ ...prev, [doc]: !prev[doc] }));
   };
 
+  const handleFileUpload = async (doc: string, file: File | null) => {
+    if (!file) return;
+    setDocFiles((prev) => ({ ...prev, [doc]: { url: "", name: file.name, uploading: true } }));
+    try {
+      const fd = new FormData();
+      fd.append("file", file);
+      fd.append("docName", doc);
+      const res = await fetch("/api/upload", { method: "POST", body: fd });
+      const data = await res.json();
+      if (!res.ok || !data.success) throw new Error(data.error || "Upload failed");
+      setDocFiles((prev) => ({ ...prev, [doc]: { url: data.url, name: data.originalName, uploading: false } }));
+      setDocsChecked((prev) => ({ ...prev, [doc]: true }));
+    } catch (e) {
+      setDocFiles((prev) => ({ ...prev, [doc]: { url: "", name: file.name, uploading: false, error: (e as Error).message } }));
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setAppError("");
@@ -82,6 +100,21 @@ export default function ApplyPage() {
 
     setSubmitting(true);
     try {
+      // Build documents with fileUrls for MongoDB
+      const docsPayload: Record<string, { provided: boolean; fileUrl?: string; fileName?: string }> = {};
+      scheme.documents_required.forEach((d) => {
+        const uploaded = docFiles[d];
+        docsPayload[d] = {
+          provided: !!docsChecked[d] || !!uploaded?.url,
+          fileUrl: uploaded?.url || undefined,
+          fileName: uploaded?.name || undefined,
+        };
+      });
+      const documentFiles: Record<string, string> = {};
+      Object.entries(docFiles).forEach(([k, v]) => {
+        if (v.url) documentFiles[k] = v.url;
+      });
+
       const payload = {
         schemeId: scheme.id,
         schemeName: scheme.name,
@@ -93,7 +126,8 @@ export default function ApplyPage() {
         income: form.income ? Number(form.income) : null,
         address: form.address || null,
         documents_required: scheme.documents_required,
-        documents: docsChecked,
+        documents: docsPayload,
+        documentFiles,
       };
 
       const res = await fetch("/api/applications", {
@@ -151,6 +185,20 @@ export default function ApplyPage() {
           <div className="mt-2 p-3 bg-zinc-900 text-white rounded-lg text-xs text-left">
             <p>Backend: <code>POST /api/applications</code> → <code>applications</code> collection</p>
             <p className="mt-1 text-zinc-400">Documents: {scheme.documents_required.join(", ")}</p>
+            {Object.keys(docFiles).length > 0 && (
+              <div className="mt-2 pt-2 border-t border-zinc-700">
+                <p className="text-zinc-300 font-medium">Uploaded files:</p>
+                {Object.entries(docFiles)
+                  .filter(([, v]) => v.url)
+                  .map(([doc, v]) => (
+                    <p key={doc} className="truncate">
+                      <a href={v.url} target="_blank" rel="noopener noreferrer" className="text-green-400 hover:underline">
+                        {doc}: {v.name} → {v.url}
+                      </a>
+                    </p>
+                  ))}
+              </div>
+            )}
           </div>
           <div className="mt-6 flex gap-2 justify-center">
             <Link href="/" className="px-5 py-2 border rounded-lg text-sm hover:bg-zinc-50">
@@ -335,22 +383,47 @@ export default function ApplyPage() {
             </div>
 
             <div className="border rounded-lg p-3 bg-zinc-50">
-              <p className="text-sm font-medium">Documents Checklist (required: {scheme.documents_required.length})</p>
-              <p className="text-xs text-zinc-600 mb-2">Tick what you have. This is saved with your application in MongoDB.</p>
-              <div className="grid sm:grid-cols-2 gap-2">
-                {scheme.documents_required.map((doc) => (
-                  <label key={doc} className="flex items-center gap-2 text-sm p-2 border rounded bg-white cursor-pointer hover:bg-zinc-50">
-                    <input
-                      type="checkbox"
-                      checked={!!docsChecked[doc]}
-                      onChange={() => handleDocToggle(doc)}
-                      className="h-4 w-4"
-                    />
-                    {doc}
-                    {docsChecked[doc] && <span className="ml-auto text-green-600 text-xs">✓ ready</span>}
-                  </label>
+              <p className="text-sm font-medium">Documents Upload (required: {scheme.documents_required.length})</p>
+              <p className="text-xs text-zinc-600 mb-2">
+                Tick or upload each document (PDF/JPG/PNG, max 5MB). Files go to <code className="bg-white px-1 rounded border">POST /api/upload</code> → <code className="bg-white px-1 rounded border">public/uploads</code> → saved with application in MongoDB.
+              </p>
+              <div className="space-y-2">
+                {scheme.documents_required.map((doc, idx) => (
+                  <div key={doc} className="flex flex-col sm:flex-row sm:items-center gap-2 text-sm p-2.5 border rounded bg-white">
+                    <label className="flex items-center gap-2 flex-1 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={!!docsChecked[doc]}
+                        onChange={() => handleDocToggle(doc)}
+                        className="h-4 w-4"
+                      />
+                      <span className="flex-1">
+                        <span className="font-medium">{doc}</span>
+                        {scheme.documents_required_hi?.[idx] && <span className="text-zinc-500"> — {scheme.documents_required_hi[idx]}</span>}
+                      </span>
+                    </label>
+                    <div className="flex items-center gap-2 sm:ml-auto">
+                      <input
+                        type="file"
+                        accept=".pdf,.jpg,.jpeg,.png,.webp"
+                        onChange={(e) => handleFileUpload(doc, e.target.files?.[0] || null)}
+                        className="text-xs max-w-[180px] file:mr-2 file:py-1 file:px-2 file:rounded file:border-0 file:bg-black file:text-white file:text-xs hover:file:bg-zinc-800"
+                      />
+                      {docFiles[doc]?.uploading && <span className="text-xs text-amber-600">Uploading...</span>}
+                      {docFiles[doc]?.url && !docFiles[doc]?.uploading && (
+                        <a href={docFiles[doc].url} target="_blank" rel="noopener noreferrer" className="text-xs text-green-600 hover:underline">
+                          ✓ View
+                        </a>
+                      )}
+                      {docFiles[doc]?.error && <span className="text-xs text-red-600">{docFiles[doc].error}</span>}
+                      {!docFiles[doc]?.url && docsChecked[doc] && !docFiles[doc]?.uploading && (
+                        <span className="text-xs text-green-600">✓ ready</span>
+                      )}
+                    </div>
+                  </div>
                 ))}
               </div>
+              <p className="text-[11px] text-zinc-500 mt-2">Uploaded files are stored in <code>public/uploads</code> and linked in MongoDB <code>applications.documents[].fileUrl</code>.</p>
             </div>
 
             {appError && (

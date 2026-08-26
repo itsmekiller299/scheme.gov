@@ -11,7 +11,7 @@ interface AppData {
   email: string;
   status: string;
   documents_required: string[];
-  documents: { name: string; provided: boolean }[];
+  documents: { name: string; provided: boolean; fileUrl?: string; fileName?: string }[];
   createdAt: string;
 }
 
@@ -77,6 +77,11 @@ export default function ApplicationsPage() {
                   {a.documents.map((d) => (
                     <span key={d.name} className={`text-[11px] px-2 py-0.5 rounded-full border ${d.provided ? "bg-green-50 border-green-200 text-green-700" : "bg-zinc-50 border-zinc-200 text-zinc-500"}`}>
                       {d.name} {d.provided ? "✓" : "○"}
+                      {d.fileUrl && (
+                        <a href={d.fileUrl} target="_blank" rel="noopener noreferrer" className="ml-1 underline">
+                          View
+                        </a>
+                      )}
                     </span>
                   ))}
                 </div>

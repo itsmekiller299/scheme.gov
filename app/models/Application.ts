@@ -10,7 +10,7 @@ export interface IApplication extends Document {
   state?: string;
   income?: number;
   address?: string;
-  documents: { name: string; provided: boolean }[];
+  documents: { name: string; provided: boolean; fileUrl?: string; fileName?: string }[];
   documents_required: string[];
   status: string;
   userId?: mongoose.Types.ObjectId;
@@ -33,6 +33,8 @@ const ApplicationSchema = new Schema<IApplication>(
       {
         name: String,
         provided: Boolean,
+        fileUrl: String,
+        fileName: String,
       },
     ],
     documents_required: [String],

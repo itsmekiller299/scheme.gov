@@ -16,11 +16,24 @@ export async function POST(request: Request) {
       }
     }
 
-    // Build documents array from checklist
-    const docs = (body.documents_required as string[]).map((name: string) => ({
-      name,
-      provided: body.documents?.[name] === true || body.documents?.includes?.(name) || false,
-    }));
+    // Build documents array from checklist + uploaded fileUrls
+    // body.documents can be: { "Aadhaar": true } or { "Aadhaar": {provided:true,fileUrl:"/uploads/..."} }
+    const docs = (body.documents_required as string[]).map((name: string) => {
+      const val = body.documents?.[name];
+      if (val && typeof val === "object") {
+        return { name, provided: !!val.provided || !!val.fileUrl, fileUrl: val.fileUrl || undefined, fileName: val.fileName || undefined };
+      }
+      return { name, provided: val === true || (Array.isArray(body.documents) && body.documents.includes(name)) || false };
+    });
+    // Also support body.documentFiles: { "Aadhaar": "/uploads/..." }
+    if (body.documentFiles) {
+      for (const d of docs) {
+        if (body.documentFiles[d.name]) {
+          d.fileUrl = body.documentFiles[d.name];
+          d.provided = true;
+        }
+      }
+    }
 
     const appDoc = await Application.create({
       schemeId: body.schemeId,
