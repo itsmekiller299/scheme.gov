@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import React from "react";
 import { INDIAN_STATES_28 } from "@/app/data/indianStates";
+import DocAnalyzer from "@/app/components/ai/DocAnalyzer";
 
 interface Scheme {
   id: string;
@@ -301,6 +302,11 @@ export default function ApplyPage() {
               State: {scheme.state_coverage.join(", ")}
             </div>
           )}
+        </div>
+
+        {/* AI Doc Intelligence */}
+        <div className="mt-6">
+          <DocAnalyzer schemeId={schemeId} />
         </div>
 
         {/* Application form */}
