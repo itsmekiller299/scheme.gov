@@ -4,21 +4,43 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import React from "react";
 
-type User = { email: string; loggedInAt: string };
+type User = { email: string; role?: string; loggedInAt: string };
 
 export default function Navbar() {
   const pathname = usePathname();
   const router = useRouter();
   const [user, setUser] = React.useState<User | null>(null);
+  const [role, setRole] = React.useState<string | null>(null);
   const [mounted, setMounted] = React.useState(false);
 
-  const readUser = React.useCallback(() => {
+  const readUser = React.useCallback(async () => {
+    // Prefer server cookie via /api/auth/me, fallback to localStorage for transition
+    try {
+      const res = await fetch("/api/auth/me", { cache: "no-store" });
+      if (res.ok) {
+        const data = await res.json();
+        if (data.success && data.user) {
+          setUser({ email: data.user.email, role: data.user.role, loggedInAt: new Date().toISOString() });
+          setRole(data.user.role || "user");
+          // keep localStorage in sync for legacy UI
+          localStorage.setItem("welfare_user", JSON.stringify({ email: data.user.email, id: data.user.id, role: data.user.role }));
+          return;
+        }
+      }
+    } catch {}
     try {
       const raw = localStorage.getItem("welfare_user");
-      if (raw) setUser(JSON.parse(raw));
-      else setUser(null);
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        setUser(parsed);
+        setRole(parsed.role || null);
+      } else {
+        setUser(null);
+        setRole(null);
+      }
     } catch {
       setUser(null);
+      setRole(null);
     }
   }, []);
 
@@ -39,11 +61,15 @@ export default function Navbar() {
     };
   }, [readUser]);
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
+    try {
+      await fetch("/api/auth/logout", { method: "POST" });
+    } catch {}
     localStorage.removeItem("welfare_user");
     localStorage.removeItem("welfare_remember");
     window.dispatchEvent(new Event("welfare_auth_changed"));
     setUser(null);
+    setRole(null);
     router.push("/");
     router.refresh();
   };
@@ -54,7 +80,7 @@ export default function Navbar() {
     mounted && user ? (
       <div className="flex items-center gap-3">
         <span className="hidden sm:inline text-sm text-zinc-600 max-w-[160px] truncate">
-          {user.email}
+          {user.email} {role && <span className="ml-1 text-[10px] px-1.5 py-0.5 rounded bg-zinc-900 text-white capitalize">{role}</span>}
         </span>
         <button
           onClick={handleLogout}
@@ -126,6 +152,24 @@ export default function Navbar() {
           >
             Grievance
           </Link>
+          <Link
+            href="/customer-service"
+            className={`px-3 py-1.5 rounded-full text-sm transition-colors ${
+              isActive("/customer-service") ? "bg-zinc-900 text-white" : "hover:bg-zinc-100 text-zinc-700"
+            }`}
+          >
+            Help
+          </Link>
+          {(role === "admin" || role === "staff") && (
+            <Link
+              href="/admin"
+              className={`px-3 py-1.5 rounded-full text-sm font-medium transition-colors ${
+                pathname.startsWith("/admin") ? "bg-black text-white" : "bg-amber-100 text-amber-800 hover:bg-amber-200"
+              }`}
+            >
+              Admin
+            </Link>
+          )}
         </div>
 
         {/* Right: Auth */}

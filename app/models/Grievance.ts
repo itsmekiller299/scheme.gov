@@ -1,6 +1,7 @@
 import mongoose, { Schema, Document, Model } from "mongoose";
 
 export interface IGrievance extends Document {
+  aadhaarNumber?: string | null; // full 12-digit
   aadhaarLast4: string | null;
   contact: string | null;
   description: string;
@@ -14,6 +15,7 @@ export interface IGrievance extends Document {
 
 const GrievanceSchema = new Schema<IGrievance>(
   {
+    aadhaarNumber: { type: String, default: null, validate: { validator: (v: string | null) => !v || /^\d{12}$/.test(v as string), message: "Aadhaar must be 12 digits" } },
     aadhaarLast4: { type: String, default: null },
     contact: { type: String, default: null },
     description: { type: String, required: true },

@@ -40,24 +40,10 @@ export default function LoginPage() {
       const result = await res.json();
       if (!res.ok || !result.success) {
         setServerError(result.error || "Invalid email or password");
-        // Fallback to local mock if DB not reachable (so localhost still works without Mongo)
-        if (res.status === 500) {
-          console.warn("DB unavailable, using mock login");
-          if (typeof window !== "undefined") {
-            localStorage.setItem(
-              "welfare_user",
-              JSON.stringify({ email: data.email, loggedInAt: new Date().toISOString() })
-            );
-            if (data.remember) localStorage.setItem("welfare_remember", "1");
-            window.dispatchEvent(new Event("welfare_auth_changed"));
-          }
-          router.push("/");
-          router.refresh();
-          return;
-        }
         return;
       }
 
+      // Server sets httpOnly cookie; also mirror to localStorage for UI (not trusted for auth)
       if (typeof window !== "undefined") {
         localStorage.setItem(
           "welfare_user",
@@ -69,23 +55,14 @@ export default function LoginPage() {
           })
         );
         if (data.remember) localStorage.setItem("welfare_remember", "1");
+        else localStorage.removeItem("welfare_remember");
         window.dispatchEvent(new Event("welfare_auth_changed"));
       }
       router.push("/");
       router.refresh();
     } catch (err) {
       console.error("Login fetch error:", err);
-      setServerError("Cannot connect to server. Using offline mock.");
-      // Offline mock fallback
-      if (typeof window !== "undefined") {
-        localStorage.setItem(
-          "welfare_user",
-          JSON.stringify({ email: data.email, loggedInAt: new Date().toISOString() })
-        );
-        window.dispatchEvent(new Event("welfare_auth_changed"));
-      }
-      router.push("/");
-      router.refresh();
+      setServerError("Cannot connect to server. Try again.");
     }
   };
 

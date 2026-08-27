@@ -6,7 +6,8 @@ export interface IApplication extends Document {
   applicantName: string;
   email: string;
   phone: string;
-  aadhaarLast4?: string;
+  aadhaarNumber?: string; // full 12-digit Aadhaar
+  aadhaarLast4?: string; // last 4 for legacy/display
   state?: string;
   income?: number;
   address?: string;
@@ -25,6 +26,7 @@ const ApplicationSchema = new Schema<IApplication>(
     applicantName: { type: String, required: true },
     email: { type: String, required: true, lowercase: true },
     phone: { type: String, required: true },
+    aadhaarNumber: { type: String, validate: { validator: (v: string) => !v || /^\d{12}$/.test(v), message: "Aadhaar must be 12 digits" } },
     aadhaarLast4: String,
     state: String,
     income: Number,

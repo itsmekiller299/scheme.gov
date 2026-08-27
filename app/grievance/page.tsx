@@ -13,13 +13,18 @@ export default function GrievancePage() {
     setLoading(true);
 
     const formData = new FormData(e.currentTarget as HTMLFormElement);
-    const aadhaarLast4 = formData.get("aadhaarLast4") as string | null;
+    const aadhaarNumber = (formData.get("aadhaarNumber") as string | null)?.replace(/\s/g, "") || null;
     const contact = formData.get("contact") as string | null;
     const description = formData.get("description") as string;
 
     // Frontend → Backend → MongoDB: POST /api/grievances → Grievance collection
     if (!description?.trim()) {
       setError("Please describe your grievance");
+      setLoading(false);
+      return;
+    }
+    if (aadhaarNumber && !/^\d{12}$/.test(aadhaarNumber)) {
+      setError("Aadhaar must be 12 digits (e.g. 123456789012)");
       setLoading(false);
       return;
     }
@@ -31,7 +36,8 @@ export default function GrievancePage() {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          aadhaarLast4,
+          aadhaarNumber,
+          aadhaarLast4: aadhaarNumber ? aadhaarNumber.slice(-4) : null,
           contact,
           description,
           schemeId: null,
@@ -77,16 +83,18 @@ export default function GrievancePage() {
             <form onSubmit={handleSubmit} className="space-y-4">
               <div>
                 <label className="block text-sm font-medium mb-2">
-                  Aadhaar number (last 4 digits)
+                  Aadhaar Number (12 digits) *
                 </label>
                 <input
-                  name="aadhaarLast4"
+                  name="aadhaarNumber"
                   type="text"
-                  placeholder="1234"
+                  placeholder="123456789012"
                   inputMode="numeric"
-                  maxLength={4}
+                  maxLength={12}
+                  pattern="\d{12}"
                   className="w-full p-2 border rounded focus:outline-none focus:ring-2 focus:ring-black"
                 />
+                <p className="text-[11px] text-zinc-500 mt-1">Full 12-digit Aadhaar for verification. Stored as <code>aadhaarNumber</code> in MongoDB (also saves last 4).</p>
               </div>
               <div>
                 <label className="block text-sm font-medium mb-2">

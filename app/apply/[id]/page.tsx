@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import React from "react";
+import { INDIAN_STATES_28 } from "@/app/data/indianStates";
 
 interface Scheme {
   id: string;
@@ -36,7 +37,7 @@ export default function ApplyPage() {
     applicantName: "",
     email: "",
     phone: "",
-    aadhaarLast4: "",
+    aadhaarNumber: "",
     state: "",
     income: "",
     address: "",
@@ -64,7 +65,7 @@ export default function ApplyPage() {
     load();
   }, [schemeId]);
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     setForm({ ...form, [e.target.name]: e.target.value });
   };
 
@@ -115,13 +116,21 @@ export default function ApplyPage() {
         if (v.url) documentFiles[k] = v.url;
       });
 
+      // Validate full Aadhaar if provided
+      if (form.aadhaarNumber && !/^\d{12}$/.test(form.aadhaarNumber.replace(/\s/g, ""))) {
+        setAppError("Aadhaar must be 12 digits (e.g. 123456789012)");
+        setSubmitting(false);
+        return;
+      }
+      const cleanAadhaar = form.aadhaarNumber.replace(/\s/g, "") || null;
       const payload = {
         schemeId: scheme.id,
         schemeName: scheme.name,
         applicantName: form.applicantName,
         email: form.email,
         phone: form.phone,
-        aadhaarLast4: form.aadhaarLast4 || null,
+        aadhaarNumber: cleanAadhaar,
+        aadhaarLast4: cleanAadhaar ? cleanAadhaar.slice(-4) : null,
         state: form.state || null,
         income: form.income ? Number(form.income) : null,
         address: form.address || null,
@@ -338,25 +347,36 @@ export default function ApplyPage() {
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium mb-1">Aadhaar (last 4 digits)</label>
+                <label className="block text-sm font-medium mb-1">Aadhaar Number (12 digits) *</label>
                 <input
-                  name="aadhaarLast4"
-                  value={form.aadhaarLast4}
+                  name="aadhaarNumber"
+                  value={form.aadhaarNumber}
                   onChange={handleChange}
-                  maxLength={4}
-                  placeholder="1234"
+                  maxLength={12}
+                  inputMode="numeric"
+                  pattern="\d{12}"
+                  placeholder="123456789012"
                   className="w-full p-2.5 border rounded-lg focus:outline-none focus:ring-2 focus:ring-black"
                 />
+                <p className="text-[11px] text-zinc-500 mt-1">Full 12-digit Aadhaar for document verification. Stored securely in MongoDB <code>aadhaarNumber</code>.</p>
               </div>
               <div>
-                <label className="block text-sm font-medium mb-1">State</label>
-                <input
+                <label className="block text-sm font-medium mb-1">State (28 Indian States) *</label>
+                <select
                   name="state"
                   value={form.state}
                   onChange={handleChange}
-                  placeholder="e.g. Maharashtra"
-                  className="w-full p-2.5 border rounded-lg focus:outline-none focus:ring-2 focus:ring-black"
-                />
+                  required
+                  className="w-full p-2.5 border rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-black"
+                >
+                  <option value="">Select state</option>
+                  {INDIAN_STATES_28.map((st) => (
+                    <option key={st} value={st}>
+                      {st}
+                    </option>
+                  ))}
+                </select>
+                <p className="text-[11px] text-zinc-500 mt-1">Choose your state from 28. Will be stored in MongoDB <code>state</code>.</p>
               </div>
               <div>
                 <label className="block text-sm font-medium mb-1">Monthly Income (₹)</label>

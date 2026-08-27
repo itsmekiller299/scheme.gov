@@ -1,5 +1,6 @@
 "use client";
 import { useState } from "react";
+import { INDIAN_STATES_28 } from "@/app/data/indianStates";
 
 interface FormData {
   language: string;
@@ -85,24 +86,42 @@ export default function SearchForm({ onSubmit }: { onSubmit: (data: FormData) =>
         </div>
 
         <div>
-          <label className="block text-sm font-medium mb-2">Category</label>
-          <select name="category" onChange={handleChange} className="w-full p-2 border rounded">
-            <option value="">Select category</option>
-            <option value="farmer">Farmer</option>
-            <option value="health">Health</option>
-            <option value="employment">Employment</option>
+          <label className="block text-sm font-medium mb-2">Category (94 schemes — Central Flagships + Handloom)</label>
+          <select name="category" value={formData.category} onChange={handleChange} className="w-full p-2 border rounded bg-white">
+            <option value="">All categories (94 schemes)</option>
+            <option value="farmer">Farmer & Agriculture — PM-KISAN, PMFBY, KCC, KUSUM, SMAM, Matsya, AHIDF (12)</option>
+            <option value="health">Health — Ayushman PM-JAY, JSY, Indradhanush, ABDM, AYUSH (6)</option>
+            <option value="employment">Employment & Skill — MGNREGA, Mudra, E-Shram, PMKVY, DDU-GKY, PMEGP, Startup, Vishwakarma, SVANidhi, NAPS, Skill Hub (14)</option>
+            <option value="housing">Housing & Urban/Rural Infra — PMAY, Swachh Bharat, Jal Jeevan, SVAMITVA, AMRUT, Smart Cities, PMAY-U 2.0 (8)</option>
+            <option value="finance">Finance — Jan Dhan, Stand-Up, CGTMSE (3)</option>
+            <option value="women">Women & Child — Ujjwala, Sukanya, Matru Vandana, BBBP, POSHAN, ICDS, NRLM, Drone Didi, Lakhpati, Mission Shakti (10)</option>
+            <option value="pension">Pension & Senior — APY, PM-KMY, Suraksha-maan, Vaya Vandana, IGNOAPS/WPS/DPS, PM-SYM (8)</option>
+            <option value="insurance">Insurance — PMSBY, PMJJBY (2)</option>
+            <option value="food">Food — PMGKAY, NFSA, ONORC (3)</option>
+            <option value="education">Education & Scholarship — PM POSHAN, Samagra Shiksha, NSP, YASASVI, SC/OBC/Minority/Top-Class, NMMSS, PMSS, EMRS, Vidya Lakshmi, eVIDYA, BharatNet, PMGDISHA, AIM (18)</option>
+            <option value="energy">Energy — PM Surya Ghar, UJALA, PM E-Drive (3)</option>
+            <option value="disability">Disability — ADIP, Niramaya (2)</option>
+            <option value="tribal">Tribal — Van Dhan, Janjatiya Utkarsh, ST Fellowship (3)</option>
+            <option value="handloom">Handloom & Textiles — NHDP, YSS, CHCDS Mega Cluster, Weaver MUDRA/HSS, Welfare Insurance, Handloom Mark & India Brand (6)</option>
           </select>
         </div>
 
         <div>
-          <label className="block text-sm font-medium mb-2">State /州</label>
-          <input
+          <label className="block text-sm font-medium mb-2">State (28 Indian States) — Select</label>
+          <select
             name="state"
-            type="text"
-            placeholder="State (optional)"
+            value={formData.state}
             onChange={handleChange}
-            className="w-full p-2 border rounded"
-          />
+            className="w-full p-2 border rounded bg-white"
+          >
+            <option value="">Select state (optional)</option>
+            {INDIAN_STATES_28.map((st) => (
+              <option key={st} value={st}>
+                {st}
+              </option>
+            ))}
+          </select>
+          <p className="text-[11px] text-zinc-500 mt-1">Only 28 states listed. Coverage: ALL states for current schemes.</p>
         </div>
 
         <div className="mt-6 border-t border-gray-200 pb-6">

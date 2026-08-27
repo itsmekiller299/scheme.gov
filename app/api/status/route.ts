@@ -20,7 +20,7 @@ export async function GET() {
         connected: state === 1,
         dbName,
         collections: { users, schemes, grievances },
-        uri: process.env.MONGODB_URI?.replace(/\/\/.*@/, "//***@") || "mongodb://127.0.0.1:27017/hackathon-ai-welfare",
+        // URI intentionally not exposed for security; only dbName shown
       }),
       { status: 200, headers: { "Content-Type": "application/json" } }
     );
@@ -29,7 +29,7 @@ export async function GET() {
       JSON.stringify({
         success: false,
         connected: false,
-        error: (err as Error).message,
+        error: "DB unavailable",
       }),
       { status: 500, headers: { "Content-Type": "application/json" } }
     );

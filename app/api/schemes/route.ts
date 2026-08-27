@@ -11,23 +11,31 @@ export async function GET(request: Request) {
     try {
       await connectDB();
       const count = await Scheme.countDocuments();
-      // Seed if empty
-      if (count === 0) {
-        const toInsert = fallbackSchemes.map((s: any) => ({
-          schemeId: s.id,
-          name: s.name,
-          name_hi: s.name_hi,
-          description: s.description,
-          description_hi: s.description_hi,
-          eligibility: s.eligibility,
-          benefits: s.benefits,
-          benefits_hi: s.benefits_hi,
-          documents_required: s.documents_required,
-          documents_required_hi: s.documents_required_hi,
-          category: s.category,
-          state_coverage: s.state_coverage,
+      // Sync DB with fallback JSON (auto-seed + handle expansion 13 -> 88)
+      if (count < fallbackSchemes.length) {
+        const bulkOps = fallbackSchemes.map((s: any) => ({
+          updateOne: {
+            filter: { schemeId: s.id },
+            update: {
+              $set: {
+                schemeId: s.id,
+                name: s.name,
+                name_hi: s.name_hi,
+                description: s.description,
+                description_hi: s.description_hi,
+                eligibility: s.eligibility,
+                benefits: s.benefits,
+                benefits_hi: s.benefits_hi,
+                documents_required: s.documents_required,
+                documents_required_hi: s.documents_required_hi,
+                category: s.category,
+                state_coverage: s.state_coverage,
+              },
+            },
+            upsert: true,
+          },
         }));
-        await Scheme.insertMany(toInsert);
+        await Scheme.bulkWrite(bulkOps);
       }
 
       if (id) {
