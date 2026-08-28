@@ -1,4 +1,4 @@
-# scheme.gov — AI Assist for Gov (Gemini 2.5)
+# scheme.gov — AI Assist for Gov 
 
 **Google Gemini Hackathon submission — Powered by `gemini-2.5-flash` + `text-embedding-004` RAG + Vision**
 
