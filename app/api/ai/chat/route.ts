@@ -6,7 +6,7 @@ import { z } from "zod";
 
 const schema = z.object({
   message: z.string().min(1).max(4000),
-  language: z.string().min(2).max(10).default("en"),
+  language: z.string().min(2).max(10).default("en"), // always en now
   history: z.array(z.object({ role: z.enum(["user", "model"]), text: z.string().max(4000) })).max(20).optional(),
   income: z.number().optional(),
   state: z.string().optional(),
@@ -22,7 +22,8 @@ export async function POST(request: Request) {
     const body = await request.json();
     const parsed = schema.safeParse(body);
     if (!parsed.success) return new Response(JSON.stringify({ success: false, error: parsed.error.issues[0].message }), { status: 400, headers: { "Content-Type": "application/json" } });
-    const { message, language, history, income, state, category } = parsed.data;
+    const { message, history, income, state, category } = parsed.data;
+    const language = "en";
 
     // Demo mode without key — still shows grounded structure to judges
     const genAI = getGemini();
@@ -54,7 +55,7 @@ export async function POST(request: Request) {
 
     const chat = model.startChat({ history: chatHistory, generationConfig: { temperature: 0.4, maxOutputTokens: 1200 } });
 
-    const prompt = `User query: "${message}"\nRespond in ${language} if hi else English. Return JSON with {answer: string, recommendations: [{schemeId, score, reason, matchingFactors}]} + also explain in answer. If Hindi requested, answer fully in Hindi.`;
+    const prompt = `User query: "${message}"\nRespond in ENGLISH only. Return JSON with {answer: string (English), recommendations: [{schemeId, score, reason (English), matchingFactors}]}`;
 
     const result = await chat.sendMessage(prompt);
     const text = result.response.text();

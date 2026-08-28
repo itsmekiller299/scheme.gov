@@ -238,10 +238,10 @@ export default function ApplyPage() {
           <div className="flex flex-wrap items-start justify-between gap-2">
             <div>
               <h1 className="text-2xl font-bold">
-                {scheme.name} {scheme.name_hi && <span className="text-base font-normal text-zinc-500">({scheme.name_hi})</span>}
+                {scheme.name}
               </h1>
               <p className="text-sm text-zinc-600 mt-1">
-                {scheme.description} {scheme.description_hi && <span className="text-zinc-500">({scheme.description_hi})</span>}
+                {scheme.description}
               </p>
               <div className="mt-2 flex flex-wrap gap-1.5">
                 <span className="text-xs px-2 py-1 bg-zinc-900 text-white rounded-full">{scheme.category}</span>
@@ -258,13 +258,7 @@ export default function ApplyPage() {
                   <li key={b}>{b}</li>
                 ))}
               </ul>
-              {scheme.benefits_hi && (
-                <ul className="list-disc list-inside text-zinc-500 mt-1 space-y-0.5">
-                  {scheme.benefits_hi.map((b) => (
-                    <li key={b}>{b}</li>
-                  ))}
-                </ul>
-              )}
+
             </div>
 
             <div className="border rounded-lg p-3 bg-amber-50 border-amber-200">
@@ -281,9 +275,6 @@ export default function ApplyPage() {
                     />
                     <span className="flex-1">
                       <span className="font-medium">{doc}</span>
-                      {scheme.documents_required_hi?.[idx] && (
-                        <span className="text-zinc-500"> — {scheme.documents_required_hi[idx]}</span>
-                      )}
                     </span>
                   </label>
                 ))}
@@ -425,7 +416,6 @@ export default function ApplyPage() {
                       />
                       <span className="flex-1">
                         <span className="font-medium">{doc}</span>
-                        {scheme.documents_required_hi?.[idx] && <span className="text-zinc-500"> — {scheme.documents_required_hi[idx]}</span>}
                       </span>
                     </label>
                     <div className="flex items-center gap-2 sm:ml-auto">

@@ -75,21 +75,21 @@ export function buildSchemesContext(lang: string = "en") {
 }
 
 export const SYSTEM_PROMPT = `You are scheme.gov — AI Assist for Gov, India's official welfare scheme discovery assistant.
-You are powered by Google Gemini. You must be HELPFUL, GROUNDED, and MULTILINGUAL.
+You are powered by Google Gemini. You must be HELPFUL, GROUNDED, and ENGLISH-ONLY.
 
 Rules:
 - Only recommend from the 94 central schemes provided in context. Never invent schemes. Always cite schemeId (e.g. pm-kisan, ayushman, mgnrega, nhdp).
 - Explain eligibility in plain language: income, age, caste, state, occupation.
-- If user speaks Hindi or other Indian language, reply in that same language. You support en, hi, ta, te, ml, bn, gu, kn, mr, pa, or, as.
-- For each recommendation, output JSON strictly matching: { recommendations: [{ schemeId, score 0-1, reason, matchingFactors: string[] }], answer_hi_if_needed, followUpQuestion }
+- ALWAYS reply in ENGLISH only, even if user writes in Hindi or other language. Translate user intent to English and answer in English.
+- For each recommendation, output JSON strictly matching: { recommendations: [{ schemeId, score 0-1, reason, matchingFactors: string[] }], answer, followUpQuestion }
 - Be concise (<=180 words answer) but warm. For low-income rural users, prioritize high-impact schemes.
 - If user asks to apply, guide next step: /apply/<schemeId>
 - Never ask for full Aadhaar. Only last 4 if needed.
 - If income/state/category not provided, infer best and ask follow-up.
 `;
 
-export function demoFallbackResponse(query: string, lang: string) {
-  // Deterministic fallback when GEMINI_API_KEY missing — judges can still see structure.
+export function demoFallbackResponse(query: string, _lang: string) {
+  // Deterministic fallback when GEMINI_API_KEY missing — always English.
   const q = query.toLowerCase();
   let picks: any[] = [];
   if (q.includes("kisan") || q.includes("farmer") || q.includes("खेती")) picks = schemes.filter((s: any) => s.category === "farmer").slice(0, 3);
@@ -98,7 +98,7 @@ export function demoFallbackResponse(query: string, lang: string) {
   else if (q.includes("handloom") || q.includes("weaver") || q.includes("बुनकर")) picks = schemes.filter((s: any) => s.category === "handloom").slice(0, 3);
   else picks = [schemes[0], schemes[1], schemes[2]];
   return {
-    answer: lang === "hi" ? `आपके लिए ${picks.length} योजनाएँ मिलीं। नीचे देखें और Apply पर क्लिक करें। (Demo mode — GEMINI_API_KEY जोड़ें तो Gemini का detailed जवाब मिलेगा)` : `Found ${picks.length} schemes for you. See below and click Apply. (Demo mode — add GEMINI_API_KEY for full Gemini reasoning)`,
+    answer: `Found ${picks.length} schemes for you. See below and click Apply. (Demo mode — add GEMINI_API_KEY for full Gemini reasoning)`,
     recommendations: picks.map((s: any) => ({ schemeId: s.id, name: s.name, name_hi: s.name_hi, score: 0.85, reason: s.description, matchingFactors: [`Category: ${s.category}`, s.eligibility?.max_income ? `Income ≤ ₹${s.eligibility.max_income}` : "No income cap"] })),
     grounded: true,
     demoMode: true,

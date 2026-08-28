@@ -122,7 +122,7 @@ export default function Navbar() {
           </div>
           <div className="hidden sm:block leading-tight">
             <p className="text-sm font-bold tracking-tight">Welfare Scheme</p>
-            <p className="text-[11px] text-zinc-500 -mt-0.5">AI Welfare • सरकार</p>
+            <p className="text-[11px] text-zinc-500 -mt-0.5">AI Welfare • Gov</p>
           </div>
         </Link>
 

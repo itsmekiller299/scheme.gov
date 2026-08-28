@@ -9,31 +9,16 @@ interface Match {
   reason?: string;
 }
 
-const LANGS = [
-  { code: "en", label: "English" },
-  { code: "hi", label: "हिन्दी" },
-  { code: "ta", label: "Tamil" },
-  { code: "te", label: "Telugu" },
-  { code: "bn", label: "Bengali" },
-  { code: "mr", label: "Marathi" },
-  { code: "gu", label: "Gujarati" },
-  { code: "kn", label: "Kannada" },
-  { code: "ml", label: "Malayalam" },
-  { code: "pa", label: "Punjabi" },
-  { code: "or", label: "Odia" },
-  { code: "as", label: "Assamese" },
-];
-
 const QUICK_PROMPTS = [
   "I am a farmer from Bihar with 1 acre, income 1.2 lakh, need help",
-  "बिहार की महिला हूँ, आय 1 लाख, गैस और बच्चों की पढ़ाई चाहिए",
+  "I am a woman from Bihar, income 1 lakh, need gas and education for children",
   "Handloom weaver in Varanasi, need yarn subsidy and MUDRA loan",
   "Student SC, income 2 lakh, need scholarship for college",
   "Street vendor in Delhi, need 15k loan",
 ];
 
 export default function ChatAgent() {
-  const [language, setLanguage] = React.useState("en");
+  const language = "en";
   const [income, setIncome] = React.useState("");
   const [state, setState] = React.useState("");
   const [input, setInput] = React.useState("");
@@ -51,7 +36,7 @@ export default function ChatAgent() {
     if (!("speechSynthesis" in window)) return;
     window.speechSynthesis.cancel();
     const u = new SpeechSynthesisUtterance(text);
-    u.lang = language === "hi" ? "hi-IN" : language === "ta" ? "ta-IN" : language === "bn" ? "bn-IN" : "en-IN";
+    u.lang = "en-IN";
     u.rate = 0.95;
     u.onstart = () => setSpeaking(true);
     u.onend = () => setSpeaking(false);
@@ -63,7 +48,7 @@ export default function ChatAgent() {
     if (!SR) { alert("Voice not supported in this browser — use Chrome"); return; }
     if (listening && recRef.current) { recRef.current.stop(); setListening(false); return; }
     const rec = new SR();
-    rec.lang = language === "hi" ? "hi-IN" : language === "ta" ? "ta-IN" : "en-IN";
+    rec.lang = "en-IN";
     rec.onstart = () => setListening(true);
     rec.onend = () => setListening(false);
     rec.onresult = (e: any) => {
@@ -160,13 +145,7 @@ export default function ChatAgent() {
       </div>
 
       {/* Controls */}
-      <div className="p-4 grid sm:grid-cols-3 gap-3 bg-white border-b">
-        <div>
-          <label className="block text-xs font-medium mb-1">Language / भाषा</label>
-          <select value={language} onChange={(e) => setLanguage(e.target.value)} className="w-full p-2 border rounded-lg bg-white text-sm">
-            {LANGS.map((l) => <option key={l.code} value={l.code}>{l.label} ({l.code})</option>)}
-          </select>
-        </div>
+      <div className="p-4 grid sm:grid-cols-2 gap-3 bg-white border-b">
         <div>
           <label className="block text-xs font-medium mb-1">Monthly Income (₹) optional</label>
           <input value={income} onChange={(e) => setIncome(e.target.value)} type="number" placeholder="e.g. 120000" className="w-full p-2 border rounded-lg text-sm" />
@@ -190,8 +169,8 @@ export default function ChatAgent() {
       <div className="p-4 space-y-3 min-h-[120px]">
         {!answer && !loading && !error && (
           <div className="text-sm text-zinc-500 border border-dashed rounded-lg p-4 text-center">
-            <p className="font-medium text-zinc-700">Try: “I am a farmer, 1 acre, income 1.5L” or speak in Hindi</p>
-            <p className="text-xs mt-1">Gemini will explain eligibility, cite schemeId, and give next steps. Works offline in demo mode.</p>
+            <p className="font-medium text-zinc-700">Try: “I am a farmer, 1 acre, income 1.5L” or speak in English</p>
+            <p className="text-xs mt-1">Gemini will explain eligibility in English, cite schemeId, and give next steps. Works offline in demo mode.</p>
           </div>
         )}
         {answer && (
@@ -215,8 +194,8 @@ export default function ChatAgent() {
             <div key={m.scheme.id} className="border rounded-lg p-3 bg-white hover:shadow-sm transition-shadow">
               <div className="flex items-start justify-between gap-2">
                 <div>
-                  <h4 className="font-medium text-sm">{m.scheme.name} {m.scheme.name_hi && <span className="text-zinc-500 font-normal">({m.scheme.name_hi})</span>}</h4>
-                  <p className="text-xs text-zinc-600 mt-0.5">{language === "hi" && m.scheme.description_hi ? m.scheme.description_hi : m.scheme.description}</p>
+                  <h4 className="font-medium text-sm">{m.scheme.name}</h4>
+                  <p className="text-xs text-zinc-600 mt-0.5">{m.scheme.description}</p>
                   <div className="mt-1.5 flex flex-wrap gap-1.5">
                     <span className="text-[11px] px-2 py-0.5 bg-zinc-900 text-white rounded-full">{m.scheme.category}</span>
                     <span className="text-[11px] px-2 py-0.5 border rounded-full">Score {Math.round(m.score * 100)}%</span>
@@ -240,13 +219,13 @@ export default function ChatAgent() {
           value={input}
           onChange={(e) => setInput(e.target.value)}
           onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); send(); } }}
-          placeholder={language === "hi" ? "यहाँ पूछें — जैसे 'मुझे किसान योजना चाहिए'" : "Ask — e.g. farmer with 1 acre, income 1 lakh"}
+          placeholder="Ask — e.g. farmer with 1 acre, income 1 lakh"
           className="flex-1 p-2.5 border rounded-lg bg-white text-sm focus:outline-none focus:ring-2 focus:ring-black"
         />
         <button onClick={toggleListen} title="Voice" className={`px-3 py-2 rounded-lg border text-sm ${listening ? "bg-red-600 text-white animate-pulse" : "bg-white hover:bg-zinc-900 hover:text-white"}`}>{listening ? "● Listening" : "🎙️ Voice"}</button>
         <button onClick={() => send(undefined, true)} disabled={loading || streaming || !input.trim()} className="px-5 py-2 bg-black text-white rounded-lg text-sm disabled:opacity-50 hover:bg-zinc-800">Send</button>
       </div>
-      <p className="px-4 pb-3 text-[11px] text-zinc-500">Powered by <code>gemini-2.5-flash</code> + <code>text-embedding-004</code> RAG (top 8) • Grounded in <code>schemes.json (94)</code> • Routes: <code>POST /api/ai/chat</code> <code>/stream</code> • Voice: Web Speech API • 12 langs</p>
+      <p className="px-4 pb-3 text-[11px] text-zinc-500">Powered by <code>gemini-2.5-flash</code> + <code>text-embedding-004</code> RAG (top 8) • Grounded in <code>schemes.json (94)</code> • Routes: <code>POST /api/ai/chat</code> <code>/stream</code> • Voice: Web Speech API • English only</p>
     </div>
   );
 }

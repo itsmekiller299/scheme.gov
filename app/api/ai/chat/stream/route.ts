@@ -23,11 +23,12 @@ export async function POST(request: Request) {
   const body = await request.json().catch(()=>null);
   const parsed = schema.safeParse(body);
   if (!parsed.success) return new Response(JSON.stringify({ error: parsed.error.issues[0].message}), { status:400, headers:{ "Content-Type":"application/json"}});
-  const { message, language, history, income, state } = parsed.data;
+    const { message, history, income, state } = parsed.data;
+    const language = "en";
 
   if (!hasGeminiKey()) {
-    // SSE demo fallback: stream the rule-based answer word by word
-    const demoText = language==="hi" ? `आपके लिए योजनाएँ खोज रहा हूँ — "${message}" (Demo mode, GEMINI_API_KEY जोड़ें तो Gemini 2.5 streaming मिलेगा)` : `Searching schemes for "${message}" (Demo — add GEMINI_API_KEY for live Gemini 2.5 streaming)`;
+    // SSE demo fallback: stream the rule-based answer word by word — English only
+    const demoText = `Searching schemes for "${message}" (Demo — add GEMINI_API_KEY for live Gemini 2.5 streaming)`;
     const words = demoText.split(" ");
     const stream = new ReadableStream({
       async start(controller){
@@ -56,7 +57,7 @@ export async function POST(request: Request) {
 
   const chat = model.startChat({ history: chatHist, generationConfig:{ temperature:0.4, maxOutputTokens: 1000 } });
 
-  const result = await chat.sendMessageStream(`${message}\nReply in ${language==="hi"?"Hindi":"English"} — also return JSON {answer, recommendations:[{schemeId,score,reason}]}`);
+  const result = await chat.sendMessageStream(`${message}\nReply in ENGLISH only — also return JSON {answer (English), recommendations:[{schemeId,score,reason}]}`);
 
   const stream = new ReadableStream({
     async start(controller){

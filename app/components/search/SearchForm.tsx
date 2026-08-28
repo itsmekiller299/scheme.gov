@@ -50,7 +50,7 @@ export default function SearchForm({ onSubmit }: { onSubmit: (data: FormData) =>
 
       <form onSubmit={handleSubmit} className="space-y-4">
         <div>
-          <label className="block text-sm font-medium mb-2">Language / भाषा</label>
+          <label className="block text-sm font-medium mb-2">Language</label>
           <select
             name="language"
             onChange={handleChange}

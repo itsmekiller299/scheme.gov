@@ -2,17 +2,17 @@
 
 **Google Gemini Hackathon submission — Powered by `gemini-2.5-flash` + `text-embedding-004` RAG + Vision**
 
-Multilingual Welfare Scheme Discovery Platform. Public users chat **by voice/text in 12 languages** → Gemini grounded RAG over **94 central schemes** (income/category/state + docs EN/HI), view required documents, and apply — all data persisted in MongoDB (auto-synced from `app/data/schemes.json`). Streaming SSE, Vision doc OCR, admin AI insights.
+Welfare Scheme Discovery Platform (English). Public users chat **by voice/text in English** → Gemini (English-only replies) grounded RAG over **94 central schemes** (income/category/state + docs), view required documents, and apply — all data persisted in MongoDB (auto-synced from `app/data/schemes.json`). Streaming SSE, Vision doc OCR, admin AI insights.
 
 ## 🤖 AI Assist — How Gemini is Central
 
 - **Chat** `POST /api/ai/chat` + **Streaming** `POST /api/ai/chat/stream` (SSE via `generateContentStream`) — system instruction grounded; top-8 schemes retrieved via `text-embedding-004` cosine (fallback keyword) then injected; only those `schemeId` may be cited. Returns `{answer, matches:[{scheme, score, matchingFactors}], groundedIds}`.
 - **RAG:** `app/lib/embeddings.ts:1` → `retrieveTopSchemes(query, 8)` → `app/lib/gemini.ts:1` (`gemini-2.5-flash`, env `GEMINI_MODEL`) — 94 schemes embed once, query embed, cosine rank. Demo fallback when no `GEMINI_API_KEY`.
 - **Vision Doc Check** `POST /api/ai/analyze` — `inlineData` to Gemini checks Aadhaar/land docs OCR + completeness/eligibility. UI on `app/apply/[id]/page.tsx:1` (`DocAnalyzer`).
-- **Insights** `GET /api/ai/insights` — aggregates Mongo → Gemini 4-bullet bilingual summary on `app/admin/page.tsx:1`.
-- **Triage** `POST /api/ai/triage` — urgency/sentiment/category + draft Hindi reply for tickets.
-- **Translate** `POST /api/ai/translate` + **TTS** `POST /api/ai/tts` — Gemini-normalized TTS text, client `speechSynthesis` fallback. 12 languages: en, hi, ta, te, ml, bn, gu, kn, mr, pa, or, as.
-- **Voice:** `Permissions-Policy: microphone=(self)` (`next.config.ts:7`, `proxy.ts:11`) + Web Speech API in `app/components/ai/ChatAgent.tsx:1` (works in Chrome). CSP allows `generativelanguage.googleapis.com`.
+- **Insights** `GET /api/ai/insights` — aggregates Mongo → Gemini 4-bullet English summary on `app/admin/page.tsx:1`.
+- **Triage** `POST /api/ai/triage` — urgency/sentiment/category + draft English reply for tickets.
+- **Translate** `POST /api/ai/translate` + **TTS** `POST /api/ai/tts` — Gemini-normalized TTS text, client `speechSynthesis` fallback. English output (translate can target any language on demand).
+- **Voice:** `Permissions-Policy: microphone=(self)` (`next.config.ts:7`, `proxy.ts:11`) + Web Speech API (English `en-IN`) in `app/components/ai/ChatAgent.tsx:1` (works in Chrome). CSP allows `generativelanguage.googleapis.com`.
 - **Verify** `GET /api/ai/verify` — live key check: `live:true` if key valid, else actionable `reason`/`fix`.
 
 > **Model:** `GEMINI_MODEL=gemini-2.5-flash` (or `gemini-3-flash-preview`) via `@google/generative-ai@0.24` + `@google/genai@2.19`. Set `GEMINI_API_KEY` in `.env.local` (get at https://aistudio.google.com/app/apikey). Without key, app runs in **demo rule-based mode** (still grounded, judges can test).
@@ -39,8 +39,8 @@ curl -X POST http://localhost:3000/api/ai/chat -H "Content-Type: application/jso
 ```bash
 curl http://localhost:3000/api/ai/chat | python3 -m json.tool # hasKey
 curl http://localhost:3000/api/ai/verify | python3 -m json.tool # live check — primary unlock verifier
-curl -X POST http://localhost:3000/api/ai/chat -H "Content-Type: application/json" -d '{"message":"बुनकर हूँ, यार्न चाहिए","language":"hi"}' | python3 -m json.tool
-curl -X POST http://localhost:3000/api/ai/analyze -H "Content-Type: application/json" -d '{"schemeId":"pm-kisan","documents":["Aadhaar"],"language":"hi"}' | python3 -m json.tool
+curl -X POST http://localhost:3000/api/ai/chat -H "Content-Type: application/json" -d '{"message":"I am a handloom weaver need yarn","language":"en"}' | python3 -m json.tool
+curl -X POST http://localhost:3000/api/ai/analyze -H "Content-Type: application/json" -d '{"schemeId":"pm-kisan","documents":["Aadhaar"],"language":"en"}' | python3 -m json.tool
 curl -X POST http://localhost:3000/api/ai/triage -H "Content-Type: application/json" -d '{"subject":"Payment delayed","description":"PM-KISAN not received","language":"en"}' | python3 -m json.tool
 curl -X POST http://localhost:3000/api/ai/translate -H "Content-Type: application/json" -d '{"text":"I need scholarship","targetLang":"hi"}' | python3 -m json.tool
 # Streaming SSE: use ChatAgent Send (browser) or curl --no-buffer POST /api/ai/chat/stream
@@ -80,7 +80,7 @@ curl -X POST http://localhost:3000/api/ai/translate -H "Content-Type: applicatio
 
 ## Features
 
-- **AI Chat + Voice (Gemini 2.5)** — Streaming SSE, 12 languages, RAG top-8 grounded, `live:true` verified via `GET /api/ai/verify`. `app/components/ai/ChatAgent.tsx:1` with mic (`microphone=(self)`) + TTS.
+- **AI Chat + Voice (Gemini 2.5)** — Streaming SSE, English-only replies, RAG top-8 grounded, `live:true` verified via `GET /api/ai/verify`. `app/components/ai/ChatAgent.tsx:1` with mic (`microphone=(self)`) + TTS (`en-IN`).
 - **Scheme Discovery (94 schemes, 14 categories)** — Filter by income, category, state. Score + matching factors. Data from MongoDB `schemes` (seeded/synced from `app/data/schemes.json` via `bulkWrite` upsert on every search/schemes/seed call).
   - `farmer` (10): PM-KISAN, PMFBY, KCC, Soil Health Card, PM-KUSUM, Per Drop More Crop, SMAM, PMMSY, AHIDF, Atal Bhujal
   - `health` (5): Ayushman PM-JAY, JSY, Mission Indradhanush, ABDM, AYUSH Mission
@@ -96,12 +96,12 @@ curl -X POST http://localhost:3000/api/ai/translate -H "Content-Type: applicatio
   - `disability` (2): ADIP, Niramaya
   - `tribal` (2): Van Dhan, Janjatiya Utkarsh (Dharti Aaba)
   - `handloom` (6): NHDP, Yarn Supply Scheme (YSS/RMSS), CHCDS Mega Cluster, Weaver MUDRA / Hathkargha Samvardhan Sahayata, Weavers Welfare Insurance (converged PMJJBY/PMSBY/Ayushman), Handloom Mark & India Handloom Brand
-- **Apply with Documents + AI Vision** — Each scheme shows benefits, eligibility, and **Required Documents** in English & Hindi with checklist + `DocAnalyzer` (Gemini Vision OCR). Submit → `applications` collection. Works for all 94 including handloom (`/apply/[id]` dynamic).
+- **Apply with Documents + AI Vision** — Each scheme shows benefits, eligibility, and **Required Documents** in English with checklist + `DocAnalyzer` (Gemini Vision OCR). Submit → `applications` collection. Works for all 94 including handloom (`/apply/[id]` dynamic).
 - **Document Uploading System** — Per-document file input (PDF/JPG/PNG/WebP, max 5MB). `POST /api/upload` → saves to `public/uploads/` → returns `fileUrl`; linked in `applications.documents[].fileUrl` and viewable via `View` links.
 - **Public Auth** — Register & Login for customer service. Passwords hashed with `bcryptjs` → `users` collection.
 - **Grievance & Applications** — Track grievances and view all applications (with uploaded file links). DB status badge on Home (`GET /api/status` shows `users/schemes/grievances`).
-- **Admin Panel** — `role: admin/staff` gated (`JWT + httpOnly cookie`) at `/admin` with dashboard stats (`/api/admin/stats`), AI Insights (`GET /api/ai/insights` Gemini bilingual summary), user management (`/api/admin/users` PATCH role), applications moderation (`/api/admin/applications` PATCH status), grievances (`/api/admin/grievances`), schemes CRUD (`/api/admin/schemes`), and customer-service ticket queue (`/api/admin/tickets`). Sidebar + mobile nav, auth guard via `/api/auth/me`.
-- **Customer Service + AI Triage** — User ticket system (`CustomerTicket` model) at `/customer-service`: create tickets (`category: general/scheme/handloom/technical` etc., `priority`, `schemeId`), view own tickets, threaded replies (user ↔ admin/staff). **AI Triage** `POST /api/ai/triage` auto-classifies urgency/sentiment/lang + draft Hindi reply. Admin view at `/admin/customer-service` with status/priority filter, reply, resolve/close. API `POST/GET /api/customer-service` (auth + rate-limit, XSS strip) and `PATCH` for admin actions.
+- **Admin Panel** — `role: admin/staff` gated (`JWT + httpOnly cookie`) at `/admin` with dashboard stats (`/api/admin/stats`), AI Insights (`GET /api/ai/insights` Gemini English summary), user management (`/api/admin/users` PATCH role), applications moderation (`/api/admin/applications` PATCH status), grievances (`/api/admin/grievances`), schemes CRUD (`/api/admin/schemes`), and customer-service ticket queue (`/api/admin/tickets`). Sidebar + mobile nav, auth guard via `/api/auth/me`.
+- **Customer Service + AI Triage** — User ticket system (`CustomerTicket` model) at `/customer-service`: create tickets (`category: general/scheme/handloom/technical` etc., `priority`, `schemeId`), view own tickets, threaded replies (user ↔ admin/staff). **AI Triage** `POST /api/ai/triage` auto-classifies urgency/sentiment + draft English reply. Admin view at `/admin/customer-service` with status/priority filter, reply, resolve/close. API `POST/GET /api/customer-service` (auth + rate-limit, XSS strip) and `PATCH` for admin actions.
 
 ## Tech Stack
 
@@ -172,13 +172,13 @@ Docs: `docs/architecture.md`, `DEVPOST.md`, `DEMO_SCRIPT.md`, `SUBMISSION_CHECKL
 | POST | `/api/auth/login` | Login (sets httpOnly JWT, rate-limit 10/15m) |
 | GET | `/api/auth/me` | Current user from JWT cookie |
 | POST | `/api/auth/logout` | Clear JWT cookie |
-| POST | `/api/ai/chat` | **Gemini chat** grounded RAG top-8, 12 langs, rate-limit 20/min |
-| POST | `/api/ai/chat/stream` | **Gemini streaming SSE** typewriter |
-| POST | `/api/ai/analyze` | **Gemini Vision** doc OCR + eligibility check |
-| POST | `/api/ai/triage` | **Gemini triage** urgency/sentiment + draft reply |
-| POST | `/api/ai/translate` | **Gemini translate** 12 langs |
-| POST | `/api/ai/tts` | **Gemini TTS** normalization + client speech |
-| GET | `/api/ai/insights` | **Gemini insights** admin summary |
+| POST | `/api/ai/chat` | **Gemini chat** grounded RAG top-8, English-only, rate-limit 20/min |
+| POST | `/api/ai/chat/stream` | **Gemini streaming SSE** typewriter (English) |
+| POST | `/api/ai/analyze` | **Gemini Vision** doc OCR + eligibility check (English) |
+| POST | `/api/ai/triage` | **Gemini triage** urgency/sentiment + draft English reply |
+| POST | `/api/ai/translate` | **Gemini translate** (target any lang, response English control) |
+| POST | `/api/ai/tts` | **Gemini TTS** normalization + client speech (`en-IN`) |
+| GET | `/api/ai/insights` | **Gemini insights** admin summary (English) |
 | GET | `/api/ai/verify` | **Gemini live check** `live:true` if key valid, else `reason`/`fix` |
 | POST | `/api/search` | Search schemes `{language,income,category,state}` — filters 94 schemes, rate-limit 30/min |
 | GET | `/api/schemes?id=pm-kisan` | Get single scheme (e.g., `?id=nhdp` for handloom) |
@@ -248,11 +248,11 @@ app/
     Navbar.tsx          # Home/Applications/Grievance/Help/CustomerService + Admin (role-gated) + auth
     search/SearchForm.tsx # Category dropdown 14 options (94 schemes + handloom 6)
     result/Result.tsx   # Scheme results with score
-    ai/ChatAgent.tsx    # Voice+streaming chat, 12 langs, quick prompts
-    ai/DocAnalyzer.tsx  # Vision doc check + eligibility
+    ai/ChatAgent.tsx    # Voice+streaming chat, English-only, quick prompts
+    ai/DocAnalyzer.tsx  # Vision doc check + eligibility (English)
   proxy.ts              # Security headers (CSP, HSTS, X-Frame etc.) + no-store for sensitive APIs + mic allow
 docs/
-  architecture.md       # Mermaid architecture + Gemini usage 200 words
+  architecture.md       # Mermaid architecture + Gemini usage 200 words (English-only)
 DEVPOST.md              # Devpost submission writeup
 DEMO_SCRIPT.md          # 60-sec demo script
 SUBMISSION_CHECKLIST.md # Checklist

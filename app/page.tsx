@@ -86,14 +86,14 @@ export default function HomePage() {
                 Users:{dbStatus.collections.users} • Schemes:{dbStatus.collections.schemes} • Grievances:{dbStatus.collections.grievances}
               </span>
             )}
-            <span className="text-xs px-2 py-1 bg-zinc-900 text-white rounded-full border border-zinc-900">Gemini 2.0 Flash • 94 schemes grounded</span>
+            <span className="text-xs px-2 py-1 bg-zinc-900 text-white rounded-full border border-zinc-900">Gemini 2.5 Flash • 94 schemes grounded</span>
             <span className="text-xs text-zinc-400">Frontend → Gemini API → MongoDB</span>
           </div>
           <h1 className="text-4xl font-bold tracking-tighter">
             scheme.gov — AI Assist for Gov
           </h1>
           <p className="text-lg text-muted-foreground mt-2">
-            Find government schemes you&#7;re eligible for — ask in Hindi, Tamil, Bengali or English. Voice + Chat powered by Gemini.
+            Find government schemes you&#7;re eligible for — ask in English. Voice + Chat powered by Gemini.
           </p>
         </header>
 
@@ -132,9 +132,9 @@ export default function HomePage() {
           <h2 className="text-xl font-medium mb-4">How This Helps</h2>
           <ul className="space-y-3 text-sm text-muted-foreground">
             <li>• Discover schemes matching your income and profile</li>
-            <li>• View benefits and required documents in Hindi & English</li>
+            <li>• View benefits and required documents in English</li>
             <li>• Get eligibility score and matching factors</li>
-            <li>• Multilingual support for 12+ Indian languages</li>
+            <li>• English-first experience with 12 language support optional</li>
           </ul>
         </div>
       </div>

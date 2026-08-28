@@ -39,18 +39,10 @@ export function Result({ matches }: { matches: MatchResult[] }) {
       {matches.map((match, idx) => (
         <div key={idx} className="pt-4 border-t">
           <h3 className="text-lg font-medium">
-            {match.scheme.name}{" "}{match.scheme.name_hi && (
-              <span className="text-sm ms-1">
-                ({match.scheme.name_hi})
-              </span>
-            )}
+            {match.scheme.name}
           </h3>
           <p className="text-sm text-muted-foreground mt-1">
-            {match.scheme.description}{" "}{match.scheme.description_hi && (
-              <span className="ml-2 text-primary">
-                ({match.scheme.description_hi})
-              </span>
-            )}
+            {match.scheme.description}
           </p>
           <div className="mt-2 grid grid-cols-2 gap-2 text-sm">
             <div>

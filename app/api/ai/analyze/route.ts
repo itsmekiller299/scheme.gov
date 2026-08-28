@@ -67,12 +67,12 @@ export async function POST(request: Request) {
       vision = { demoMode: true, note: "Add GEMINI_API_KEY for vision OCR" };
     }
 
-    // Gemini textual reasoning for eligibility (if key available)
+    // Gemini textual reasoning for eligibility (if key available) — English only
     let aiAdvice: string | null = null;
     if (genAI && hasGeminiKey()) {
       try {
         const model = genAI.getGenerativeModel({ model: GEMINI_MODEL });
-        const p = `Scheme: ${scheme.name} (${scheme.id}) desc:${scheme.description} eligibility:${JSON.stringify(scheme.eligibility)} docs:${required.join(",")} User: income ${applicantIncome ?? "?"}, state ${applicantState ?? "?"}, has docs: ${(documents || []).join(",") || "none"}, missing: ${missing.join(",") || "none"}. Language: ${language}. Give 2-sentence advice in ${language==='hi'?'Hindi':'English'}: eligible? what's missing?`;
+        const p = `Scheme: ${scheme.name} (${scheme.id}) desc:${scheme.description} eligibility:${JSON.stringify(scheme.eligibility)} docs:${required.join(",")} User: income ${applicantIncome ?? "?"}, state ${applicantState ?? "?"}, has docs: ${(documents || []).join(",") || "none"}, missing: ${missing.join(",") || "none"}. Give 2-sentence advice in ENGLISH only: eligible? what's missing?`;
         const r = await model.generateContent(p);
         aiAdvice = r.response.text().trim().slice(0, 600);
       } catch {}
@@ -85,7 +85,7 @@ export async function POST(request: Request) {
       present, missing,
       eligibility: { incomeOk, stateOk, eligible, completeness },
       vision,
-      aiAdvice: aiAdvice || (language === "hi" ? `${present.length}/${required.length} दस्तावेज़ हैं। कमी: ${missing.join(", ") || "कोई नहीं"}` : `${present.length}/${required.length} docs ready. Missing: ${missing.join(", ") || "none"}`),
+      aiAdvice: aiAdvice || `${present.length}/${required.length} docs ready. Missing: ${missing.join(", ") || "none"}`,
       model: hasGeminiKey() ? GEMINI_MODEL : "rule-based-demo",
     }), { headers: { "Content-Type": "application/json" } });
   } catch (e) {
