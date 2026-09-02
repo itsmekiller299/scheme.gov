@@ -15,10 +15,10 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: "scheme.gov — AI Assist for Gov | Gemini 2.5",
-  description: "AI Assist for Gov — 94 welfare schemes, Gemini 2.5 Flash grounded chat, voice in 12 Indian languages, RAG + Vision doc check. Built for Google Gemini Hackathon.",
+  description: "AI Assist for Gov — 94 welfare schemes, Gemini 2.5 Flash grounded English chat, voice (en-IN), RAG + Vision doc check. Built for Google Gemini Hackathon.",
   openGraph: {
     title: "scheme.gov — AI Assist for Gov (Gemini 2.5)",
-    description: "Ask in Hindi/Tamil/Bengali — Gemini finds your eligible schemes, validates docs, guides apply. 94 schemes, voice, RAG.",
+    description: "Ask in English (en-IN) — Gemini finds your eligible schemes, validates docs, guides apply. 94 schemes, voice, RAG.",
     type: "website",
   },
 };

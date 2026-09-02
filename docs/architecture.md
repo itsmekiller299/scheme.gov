@@ -26,7 +26,7 @@ graph TD
 | POST | /api/ai/chat/stream | Streaming SSE |
 | POST | /api/ai/analyze | Vision OCR + eligibility |
 | POST | /api/ai/triage | Classify + draft reply |
-| POST | /api/ai/translate | Translate 12 langs |
+| POST | /api/ai/translate | Translate (scheme names stay English) |
 | POST | /api/ai/tts | TTS normalization |
 | GET | /api/ai/insights | Admin summary |
 

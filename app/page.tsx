@@ -100,7 +100,7 @@ export default function HomePage() {
         {/* P0: Gemini AI Agent — primary for judges */}
         <div className="mb-8">
           <ChatAgent />
-          <p className="text-xs text-zinc-500 mt-2 text-center">▲ AI Agent (judges: test voice in Hindi) — Classic filter below for fallback</p>
+          <p className="text-xs text-zinc-500 mt-2 text-center">▲ AI Agent (judges: test voice in English en-IN) — Classic filter below for fallback</p>
         </div>
 
         <div className="border-t pt-6">
@@ -134,7 +134,7 @@ export default function HomePage() {
             <li>• Discover schemes matching your income and profile</li>
             <li>• View benefits and required documents in English</li>
             <li>• Get eligibility score and matching factors</li>
-            <li>• English-first experience with 12 language support optional</li>
+            <li>• English-only grounded experience (replies in English)</li>
           </ul>
         </div>
       </div>

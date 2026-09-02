@@ -137,7 +137,7 @@ export default function ChatAgent() {
             AI Assist for Gov
             <span className="text-xs font-normal px-2 py-0.5 bg-black text-white rounded-full">Gemini 2.5 Flash</span>
           </h2>
-          <p className="text-xs text-zinc-600">Ask in any language — voice or text. Grounded in 94 central schemes. {!demoMode ? "● Live unlock" : "○ Demo mode — set GEMINI_API_KEY then GET /api/ai/verify"}</p>
+          <p className="text-xs text-zinc-600">Ask in English (en-IN) — voice or text. Grounded in 94 central schemes. {!demoMode ? "● Live unlock" : "○ Demo mode — set GEMINI_API_KEY then GET /api/ai/verify"}</p>
         </div>
         <div className="flex items-center gap-2">
           <span className={`text-xs px-2 py-1 rounded-full border ${demoMode ? "bg-amber-50 border-amber-200 text-amber-700" : "bg-green-50 border-green-200 text-green-700"}`}>{demoMode ? "Demo (no key)" : "Gemini Live"}</span>
