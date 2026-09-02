@@ -117,10 +117,7 @@ export default function Navbar() {
       <div className="max-w-6xl mx-auto px-4 h-[60px] flex items-center justify-between gap-4">
         {/* Left: Brand */}
         <Link href="/" className="flex items-center gap-2 shrink-0">
-          <div className="h-8 w-8 rounded-lg bg-black text-white grid place-items-center text-sm font-bold">
-            W
-          </div>
-          <div className="hidden sm:block leading-tight">
+          <div className="leading-tight">
             <p className="text-sm font-bold tracking-tight">Welfare Scheme</p>
             <p className="text-[11px] text-zinc-500 -mt-0.5">AI Welfare • Gov</p>
           </div>
