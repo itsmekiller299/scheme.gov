@@ -15,8 +15,9 @@ export async function GET() {
     let reason = msg;
     let fix = "Check key at https://aistudio.google.com/app/apikey";
     if (msg.includes("API_KEY_INVALID") || msg.includes("API key not valid")) { reason = "API_KEY_INVALID"; fix = "Key invalid — regenerate at aistudio.google.com/app/apikey and update .env.local GEMINI_API_KEY (must start with AIza, 39 chars)."; }
+    else if (msg.includes("401") || msg.includes("UNAUTHENTICATED") || msg.includes("ACCESS_TOKEN")) { reason = "AUTH_401_AQ_KEY"; fix = "AQ. keys are OAuth/IP-bound and fail on Vercel (401). Generate fresh AIza key at aistudio.google.com/app/apikey (starts with AIza, 39 chars) and set: vercel env add GEMINI_API_KEY production → vercel --prod --yes. Demo fallback still works."; }
     else if (msg.includes("quota") || msg.includes("429") || msg.includes("RESOURCE_EXHAUSTED")) { reason = "QUOTA_EXCEEDED"; fix = "Quota exceeded — check billing at aistudio.google.com or wait 60s. Demo mode will still work (rule-based fallback)."; }
-    else if (msg.includes("model") && msg.includes("not found")) { reason = "MODEL_NOT_FOUND"; fix = `Models tried ${GEMINI_FALLBACK_MODELS.join(", ")} not found — set GEMINI_MODEL=gemini-2.0-flash in .env.local`; }
+    else if (msg.includes("model") && msg.includes("not found")) { reason = "MODEL_NOT_FOUND"; fix = `Models tried ${GEMINI_FALLBACK_MODELS.join(", ")} not found — set GEMINI_MODEL=gemini-flash-latest in .env.local`; }
     return new Response(JSON.stringify({ success: false, live: false, hasKey: true, model: GEMINI_MODEL, tried: GEMINI_FALLBACK_MODELS, keyPrefix: diag.keyPrefix, error: reason, raw: msg.slice(0, 500), fix }), { status: 200, headers: { "Content-Type": "application/json" } });
   }
 }

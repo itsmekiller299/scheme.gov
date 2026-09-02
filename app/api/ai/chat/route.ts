@@ -80,8 +80,8 @@ export async function POST(request: Request) {
       text = text!;
     } catch (e: any) {
       const msg = e?.message || String(e);
-      // Graceful fallback to demo on quota/model errors — still grounded (include 503 high demand)
-      if (msg.includes("quota") || msg.includes("429") || msg.includes("503") || msg.includes("UNAVAILABLE") || msg.includes("RESOURCE_EXHAUSTED") || msg.includes("not found") || msg.includes("fetch failed") || msg.includes("high demand")) {
+      // Graceful fallback to demo on quota/model/auth errors — still grounded (include 503 high demand + 401 Vercel AQ key)
+      if (msg.includes("quota") || msg.includes("429") || msg.includes("503") || msg.includes("401") || msg.includes("UNAUTHENTICATED") || msg.includes("ACCESS_TOKEN") || msg.includes("UNAVAILABLE") || msg.includes("RESOURCE_EXHAUSTED") || msg.includes("not found") || msg.includes("fetch failed") || msg.includes("high demand") || msg.includes("invalid authentication")) {
         const fallback = demoFallbackResponse(message, language);
         const enriched = fallback.recommendations.map((r: any) => {
           const full = (schemes as any[]).find((s) => s.id === r.schemeId);
@@ -122,10 +122,20 @@ export async function POST(request: Request) {
   } catch (e: any) {
     console.error("AI chat error", e);
     const msg = e?.message || String(e);
+    // Also fallback on 401 for Vercel AQ keys — return demo instead of 500 so live URL stays usable
+    if (msg.includes("401") || msg.includes("UNAUTHENTICATED") || msg.includes("ACCESS_TOKEN")) {
+      const fallback = demoFallbackResponse(message, language);
+      const enriched = fallback.recommendations.map((r: any) => {
+        const full = (schemes as any[]).find((s) => s.id === r.schemeId);
+        return { scheme: full, score: r.score, matchingFactors: r.matchingFactors, reason: r.reason };
+      });
+      return new Response(JSON.stringify({ success: true, answer: fallback.answer + " (Auth fallback — demo grounded, update GEMINI_API_KEY to AIza on Vercel)", matches: enriched, model: "demo-fallback-auth", groundedSchemes: 94, groundedIds: enriched.map((e:any)=>e.scheme.id), warning: msg.slice(0,300) }), { status: 200, headers: { "Content-Type": "application/json" } });
+    }
     let hint = "Retry in 10s. If persists, check GEMINI_API_KEY at https://aistudio.google.com/app/apikey and restart: npm run dev";
     if (msg.includes("API_KEY_INVALID") || msg.includes("API key")) hint = "GEMINI_API_KEY invalid — regenerate at https://aistudio.google.com/app/apikey, set in .env.local as GEMINI_API_KEY=AIza... (no quotes, no xxxx)";
     else if (msg.includes("quota") || msg.includes("429")) hint = "Gemini quota exceeded — wait 60s or check billing";
     else if (msg.includes("model")) hint = `Model ${GEMINI_MODEL} not found — set GEMINI_MODEL=gemini-2.0-flash in .env.local`;
+    else if (msg.includes("401")) hint = "Gemini auth failed on Vercel — AQ keys are IP-bound; generate fresh AIza key at aistudio.google.com and set vercel env GEMINI_API_KEY";
     return new Response(JSON.stringify({ success: false, error: `${msg.slice(0,400)}`, hint, verify: "GET /api/ai/verify" }), { status: 500, headers: { "Content-Type": "application/json" } });
   }
 }
