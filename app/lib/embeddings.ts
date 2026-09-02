@@ -28,19 +28,29 @@ function keywordScore(query: string, scheme: any): number {
 
 export async function retrieveTopSchemes(query: string, topK = 8): Promise<{ scheme: any; score: number; reason: string }[]> {
   const all = schemes as any[];
-  // Try Gemini embeddings if key available
+  // Try Gemini embeddings if key available — with fast-fail to avoid 2min blocking on quota
   if (hasGeminiKey()) {
     try {
       const genAI = getGeminiNew();
       if (genAI) {
-        // Lazy build embeddings once
+        // Fast check: try query embedding with 4s timeout — if quota/high-demand fails, immediately fallback to keyword
+        const withTimeout = <T>(p: Promise<T>, ms: number, label: string) => Promise.race([p, new Promise<never>((_, rej)=> setTimeout(()=> rej(new Error(label + " timeout")), ms))]);
+        // Probe query embedding first — if this fails we skip building 94
+        try {
+          await withTimeout(genAI.models.embedContent({ model: GEMINI_EMBEDDING_MODEL, contents: [{ parts: [{ text: query.slice(0,500) }] }] }) as Promise<any>, 4000, "probe");
+        } catch (probeErr: any) {
+          const m = probeErr?.message || String(probeErr);
+          if (m.includes("quota") || m.includes("429") || m.includes("503") || m.includes("UNAVAILABLE") || m.includes("RESOURCE_EXHAUSTED") || m.includes("timeout")) {
+            throw new Error("embed probe failed fast: " + m.slice(0,120));
+          }
+        }
+        // Lazy build embeddings once — batch with timeout per batch
         if (!cachedEmbeddings) {
-          // Build all scheme embeddings in parallel (batch to avoid rate limit)
           const chunk = 10;
           cachedEmbeddings = [];
           for (let i=0;i<all.length;i+=chunk) {
             const batch = all.slice(i, i+chunk);
-            const res = await Promise.all(batch.map(async (s) => {
+            const res = await withTimeout(Promise.all(batch.map(async (s) => {
               const text = `${s.name} ${s.description} category:${s.category} benefits:${s.benefits?.join(",")} eligibility:${JSON.stringify(s.eligibility)}`;
               try {
                 let r: any;
@@ -52,7 +62,7 @@ export async function retrieveTopSchemes(query: string, topK = 8): Promise<{ sch
                 const vec = r.embeddings?.[0]?.values || r.embedding?.values;
                 return { id: s.id, vector: vec || [] };
               } catch { return { id: s.id, vector: [] }; }
-            }));
+            })), 8000, "batch");
             cachedEmbeddings.push(...res.filter(r=>r.vector.length>0));
             if (cachedEmbeddings.length === 0) throw new Error("no embeddings");
           }
@@ -60,9 +70,9 @@ export async function retrieveTopSchemes(query: string, topK = 8): Promise<{ sch
         // Query embedding with fallback
         let qRes: any;
         try {
-          qRes = await genAI.models.embedContent({ model: GEMINI_EMBEDDING_MODEL, contents: [{ parts: [{ text: query }] }] });
+          qRes = await withTimeout(genAI.models.embedContent({ model: GEMINI_EMBEDDING_MODEL, contents: [{ parts: [{ text: query }] }] }) as Promise<any>, 4000, "query");
         } catch {
-          qRes = await genAI.models.embedContent({ model: GEMINI_EMBEDDING_FALLBACK, contents: [{ parts: [{ text: query }] }] });
+          qRes = await withTimeout(genAI.models.embedContent({ model: GEMINI_EMBEDDING_FALLBACK, contents: [{ parts: [{ text: query }] }] }) as Promise<any>, 4000, "query-fallback");
         }
         const qVec = qRes.embeddings?.[0]?.values || qRes.embedding?.values;
         if (qVec && cachedEmbeddings.length > 0) {

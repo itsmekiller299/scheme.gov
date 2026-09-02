@@ -80,8 +80,8 @@ export async function POST(request: Request) {
       text = text!;
     } catch (e: any) {
       const msg = e?.message || String(e);
-      // Graceful fallback to demo on quota/model errors — still grounded
-      if (msg.includes("quota") || msg.includes("429") || msg.includes("RESOURCE_EXHAUSTED") || msg.includes("not found") || msg.includes("fetch failed")) {
+      // Graceful fallback to demo on quota/model errors — still grounded (include 503 high demand)
+      if (msg.includes("quota") || msg.includes("429") || msg.includes("503") || msg.includes("UNAVAILABLE") || msg.includes("RESOURCE_EXHAUSTED") || msg.includes("not found") || msg.includes("fetch failed") || msg.includes("high demand")) {
         const fallback = demoFallbackResponse(message, language);
         const enriched = fallback.recommendations.map((r: any) => {
           const full = (schemes as any[]).find((s) => s.id === r.schemeId);
