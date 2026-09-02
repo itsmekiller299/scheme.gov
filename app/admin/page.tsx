@@ -38,7 +38,7 @@ export default function AdminDashboard() {
 
       {/* Gemini Insights */}
       <div className="border rounded-xl bg-gradient-to-br from-zinc-900 to-zinc-800 text-white p-4">
-        <h3 className="font-semibold flex items-center gap-2">Gemini Insights <span className="text-xs px-2 py-0.5 bg-white text-black rounded-full">gemini-2.0-flash</span> <span className="text-xs font-normal text-zinc-400">GET /api/ai/insights</span></h3>
+        <h3 className="font-semibold flex items-center gap-2">Gemini Insights <span className="text-xs px-2 py-0.5 bg-white text-black rounded-full">gemini-flash-latest • fallback</span> <span className="text-xs font-normal text-zinc-400">GET /api/ai/insights</span></h3>
         {aiLoading ? <p className="text-sm text-zinc-300 mt-2">Gemini is analyzing applications…</p> : aiInsight ? <p className="text-sm whitespace-pre-wrap leading-relaxed mt-2 text-zinc-100">{aiInsight}</p> : <p className="text-sm text-zinc-400 mt-2">No insights yet.</p>}
       </div>
 

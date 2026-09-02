@@ -4,10 +4,71 @@ import schemes from "@/app/data/schemes.json";
 
 // Central helper for all Gemini usage — single source of truth for judges.
 // Judges checklist: which Gemini model, how it is central, grounding source.
-export const GEMINI_MODEL = process.env.GEMINI_MODEL || "gemini-3-flash-preview";
-export const GEMINI_FALLBACK_MODEL = "gemini-flash-latest";
-export const GEMINI_EMBEDDING_MODEL = "text-embedding-004";
+export const GEMINI_MODEL = process.env.GEMINI_MODEL || "gemini-flash-latest";
+export const GEMINI_FALLBACK_MODEL = "gemini-3-flash-preview";
+export const GEMINI_FALLBACK_MODELS = Array.from(new Set([GEMINI_MODEL, GEMINI_FALLBACK_MODEL, "gemini-flash-latest", "gemini-3-flash-preview", "gemini-3.6-flash"]));
+export const GEMINI_EMBEDDING_MODEL = process.env.GEMINI_EMBEDDING_MODEL || "gemini-embedding-001";
+export const GEMINI_EMBEDDING_FALLBACK = "gemini-embedding-001";
 export const SCHEMES_COUNT = schemes.length;
+
+export async function tryGenerateContent(prompt: string | any[], opts?: { systemInstruction?: string }) {
+  // Prefer new SDK (works with AQ keys + gemini-flash-latest)
+  const genNew = getGeminiNew();
+  if (genNew) {
+    let lastErr: any = null;
+    for (const m of GEMINI_FALLBACK_MODELS) {
+      try {
+        const r: any = await genNew.models.generateContent({ model: m, contents: [{ role: "user", parts: [{ text: typeof prompt === "string" ? prompt : JSON.stringify(prompt) }] }], config: opts?.systemInstruction ? { systemInstruction: opts.systemInstruction } : undefined });
+        const text = r.text || r.candidates?.[0]?.content?.parts?.[0]?.text || "";
+        if (text) return { text, model: m };
+      } catch (e: any) {
+        lastErr = e;
+        const msg = e?.message || JSON.stringify(e).slice(0,500);
+        if (msg.includes("API_KEY_INVALID") || msg.includes("API key not valid")) throw e;
+        await new Promise(res=> setTimeout(res, 800));
+        continue;
+      }
+    }
+    if (lastErr) throw lastErr;
+  }
+  const genAI = getGemini();
+  if (!genAI) throw new Error("No Gemini key");
+  let lastErr: any = null;
+  for (const m of GEMINI_FALLBACK_MODELS) {
+    try {
+      const model = genAI.getGenerativeModel({ model: m, ...(opts?.systemInstruction ? { systemInstruction: opts.systemInstruction } : {}) });
+      const r = Array.isArray(prompt) ? await model.generateContent(prompt as any) : await model.generateContent(prompt);
+      return { text: r.response.text(), model: m };
+    } catch (e: any) {
+      lastErr = e;
+      const msg = e?.message || String(e);
+      if (msg.includes("API_KEY_INVALID") || msg.includes("API key not valid")) throw e;
+      await new Promise(res=> setTimeout(res, 800));
+      continue;
+    }
+  }
+  throw lastErr;
+}
+
+export async function tryGenerateContentStream(prompt: string, opts?: { systemInstruction?: string; history?: any[] }) {
+  const genAI = getGemini();
+  if (!genAI) throw new Error("No Gemini key");
+  let lastErr: any = null;
+  for (const m of GEMINI_FALLBACK_MODELS) {
+    try {
+      const model = genAI.getGenerativeModel({ model: m, ...(opts?.systemInstruction ? { systemInstruction: opts.systemInstruction } : {}) });
+      const chat = model.startChat({ history: opts?.history || [], generationConfig: { temperature: 0.4, maxOutputTokens: 1000 } });
+      const result = await chat.sendMessageStream(prompt);
+      return { stream: result.stream, model: m };
+    } catch (e: any) {
+      lastErr = e;
+      const msg = e?.message || String(e);
+      if (msg.includes("API_KEY_INVALID") || msg.includes("API key not valid")) throw e;
+      continue;
+    }
+  }
+  throw lastErr;
+}
 
 export function getRawKey(): string {
   return (process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY || "").trim();

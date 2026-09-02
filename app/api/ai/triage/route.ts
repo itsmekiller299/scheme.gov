@@ -1,6 +1,14 @@
-import { getGemini, GEMINI_MODEL, hasGeminiKey } from "@/app/lib/gemini";
+import { GEMINI_MODEL, GEMINI_FALLBACK_MODELS, hasGeminiKey, tryGenerateContent } from "@/app/lib/gemini";
 import { checkRateLimit, getClientIp } from "@/app/lib/auth";
 import { z } from "zod";
+
+function heuristicFallback(subject:string, description:string, language:string, category?:string, schemeId?:string){
+  const text = `${subject} ${description}`.toLowerCase();
+  let urgency: string = "medium";
+  if (text.includes("urgent") || text.includes("not working") || text.includes("rejected") || text.includes("delayed")) urgency="high";
+  if (text.includes("thank") || text.includes("info")) urgency="low";
+  return { urgency, sentiment: urgency==="high"?"negative":"neutral", lang: language, category: category||"general", suggestedSchemeId: schemeId||null, draftReply: `Thanks for contacting us about "${subject}". Our team will review shortly and guide next steps at /apply/${schemeId||"help"} (demo fallback — Gemini quota high demand, retry soon).`, tags: ["auto-triaged"] };
+}
 
 const schema = z.object({
   subject: z.string().min(2).max(200),
@@ -19,27 +27,22 @@ export async function POST(request: Request) {
   const { subject, description, language, category, schemeId } = parsed.data;
 
   if (!hasGeminiKey()) {
-    // heuristic fallback
-    const text = `${subject} ${description}`.toLowerCase();
-    let urgency: string = "medium";
-    if (text.includes("urgent") || text.includes("not working") || text.includes("rejected")) urgency="high";
-    if (text.includes("thank") || text.includes("info")) urgency="low";
-    const lang = /[\u0900-\u097F]/.test(description) ? "hi" : language;
-    return new Response(JSON.stringify({ success:true, demoMode:true, triage:{ urgency, sentiment: urgency==="high"?"negative":"neutral", lang, category: category||"general", suggestedSchemeId: schemeId||null, draftReply: `Thanks for contacting us about "${subject}". Our team will review (demo).` }, model:"rule-based"}), { headers:{ "Content-Type":"application/json"}});
+    return new Response(JSON.stringify({ success:true, demoMode:true, triage: heuristicFallback(subject, description, language, category, schemeId), model:"rule-based"}), { headers:{ "Content-Type":"application/json"}});
   }
 
-  const genAI = getGemini()!;
-  const model = genAI.getGenerativeModel({ model: GEMINI_MODEL });
   const prompt = `You are support triage AI for scheme.gov (94 welfare schemes). Ticket: subject="${subject}" description="${description}" category=${category||"?"} schemeId=${schemeId||"?"}. Language hint: ${language}.
 Return JSON only: {urgency: "low"|"medium"|"high", sentiment:"positive"|"neutral"|"negative", lang:"en"|"hi"|"ta"|"te"|"bn"|"mr"|..., category:"general"|"scheme"|"handloom"|"technical"|"documents", suggestedSchemeId: string|null, draftReply: string (in ticket language, <=90 words, warm, actionable, cite next step /apply/<id> if relevant), tags: string[] }`;
 
   try{
-    const r = await model.generateContent(prompt);
-    const txt = r.response.text();
+    const { text: txt, model: used } = await tryGenerateContent(prompt);
     const j = JSON.parse(txt.match(/\{[\s\S]*\}/)?.[0] || "{}");
-    return new Response(JSON.stringify({ success:true, triage: j, model: GEMINI_MODEL }), { headers:{ "Content-Type":"application/json"}});
-  }catch(e){
-    return new Response(JSON.stringify({ success:false, error:(e as Error).message}), { status:500, headers:{ "Content-Type":"application/json"}});
+    return new Response(JSON.stringify({ success:true, triage: j, model: used }), { headers:{ "Content-Type":"application/json"}});
+  }catch(e: any){
+    const msg = e?.message || String(e);
+    if (msg.includes("quota") || msg.includes("429") || msg.includes("503") || msg.includes("UNAVAILABLE") || msg.includes("RESOURCE_EXHAUSTED")) {
+      return new Response(JSON.stringify({ success:true, demoMode:true, triage: heuristicFallback(subject, description, language, category, schemeId), model:"demo-fallback-quota", warning: msg.slice(0,300)}), { headers:{ "Content-Type":"application/json"}});
+    }
+    return new Response(JSON.stringify({ success:false, error: msg.slice(0,400)}), { status:500, headers:{ "Content-Type":"application/json"}});
   }
 }
 

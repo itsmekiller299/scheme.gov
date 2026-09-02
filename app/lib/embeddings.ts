@@ -1,5 +1,5 @@
 import schemes from "@/app/data/schemes.json";
-import { getGeminiNew, GEMINI_EMBEDDING_MODEL, hasGeminiKey } from "@/app/lib/gemini";
+import { getGeminiNew, GEMINI_EMBEDDING_MODEL, GEMINI_EMBEDDING_FALLBACK, hasGeminiKey } from "@/app/lib/gemini";
 
 // Lightweight RAG: embedding + cosine similarity. Falls back to keyword score when no key.
 let cachedEmbeddings: { id: string; vector: number[] }[] | null = null;
@@ -43,7 +43,12 @@ export async function retrieveTopSchemes(query: string, topK = 8): Promise<{ sch
             const res = await Promise.all(batch.map(async (s) => {
               const text = `${s.name} ${s.description} category:${s.category} benefits:${s.benefits?.join(",")} eligibility:${JSON.stringify(s.eligibility)}`;
               try {
-                const r: any = await genAI.models.embedContent({ model: GEMINI_EMBEDDING_MODEL, contents: [{ parts: [{ text }] }] });
+                let r: any;
+                try {
+                  r = await genAI.models.embedContent({ model: GEMINI_EMBEDDING_MODEL, contents: [{ parts: [{ text }] }] });
+                } catch {
+                  r = await genAI.models.embedContent({ model: GEMINI_EMBEDDING_FALLBACK, contents: [{ parts: [{ text }] }] });
+                }
                 const vec = r.embeddings?.[0]?.values || r.embedding?.values;
                 return { id: s.id, vector: vec || [] };
               } catch { return { id: s.id, vector: [] }; }
@@ -52,8 +57,13 @@ export async function retrieveTopSchemes(query: string, topK = 8): Promise<{ sch
             if (cachedEmbeddings.length === 0) throw new Error("no embeddings");
           }
         }
-        // Query embedding
-        const qRes: any = await genAI.models.embedContent({ model: GEMINI_EMBEDDING_MODEL, contents: [{ parts: [{ text: query }] }] });
+        // Query embedding with fallback
+        let qRes: any;
+        try {
+          qRes = await genAI.models.embedContent({ model: GEMINI_EMBEDDING_MODEL, contents: [{ parts: [{ text: query }] }] });
+        } catch {
+          qRes = await genAI.models.embedContent({ model: GEMINI_EMBEDDING_FALLBACK, contents: [{ parts: [{ text: query }] }] });
+        }
         const qVec = qRes.embeddings?.[0]?.values || qRes.embedding?.values;
         if (qVec && cachedEmbeddings.length > 0) {
           const scored = all.map((s) => {

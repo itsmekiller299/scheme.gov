@@ -1,4 +1,4 @@
-import { getGemini, SYSTEM_PROMPT, GEMINI_MODEL, demoFallbackResponse, hasGeminiKey } from "@/app/lib/gemini";
+import { getGemini, SYSTEM_PROMPT, GEMINI_MODEL, GEMINI_FALLBACK_MODELS, demoFallbackResponse, hasGeminiKey, tryGenerateContent } from "@/app/lib/gemini";
 import schemes from "@/app/data/schemes.json";
 import { retrieveTopSchemes } from "@/app/lib/embeddings";
 import { checkRateLimit, getClientIp } from "@/app/lib/auth";
@@ -37,8 +37,6 @@ export async function POST(request: Request) {
       return new Response(JSON.stringify({ success: true, demoMode: true, answer: fallback.answer, matches: enriched, model: "demo-rule-based", groundedSchemes: 94 }), { status: 200, headers: { "Content-Type": "application/json" } });
     }
 
-    const model = genAI.getGenerativeModel({ model: GEMINI_MODEL, systemInstruction: SYSTEM_PROMPT });
-
     // RAG: retrieve top 8 relevant schemes to keep prompt small + cited
     const top = await retrieveTopSchemes(message, 8);
     const ctx = top.map((t) => {
@@ -53,12 +51,46 @@ export async function POST(request: Request) {
       ...(history || []).map((h) => ({ role: h.role as "user" | "model", parts: [{ text: h.text }] })),
     ];
 
-    const chat = model.startChat({ history: chatHistory, generationConfig: { temperature: 0.4, maxOutputTokens: 1200 } });
-
     const prompt = `User query: "${message}"\nRespond in ENGLISH only. Return JSON with {answer: string (English), recommendations: [{schemeId, score, reason (English), matchingFactors}]}`;
 
-    const result = await chat.sendMessage(prompt);
-    const text = result.response.text();
+    // Try Gemini with fallback models; on quota/model failure, graceful degrade to demo
+    let text: string;
+    let usedModel = GEMINI_MODEL;
+    try {
+      const genAIInner = getGemini()!;
+      let lastErr: any = null;
+      let success = false;
+      for (const m of GEMINI_FALLBACK_MODELS) {
+        try {
+          const model = genAIInner.getGenerativeModel({ model: m, systemInstruction: SYSTEM_PROMPT });
+          const chat = model.startChat({ history: chatHistory, generationConfig: { temperature: 0.4, maxOutputTokens: 1200 } });
+          const result = await chat.sendMessage(prompt);
+          text = result.response.text();
+          usedModel = m;
+          success = true;
+          break;
+        } catch (e: any) {
+          lastErr = e;
+          const msg = e?.message || String(e);
+          if (msg.includes("API_KEY_INVALID") || msg.includes("API key not valid")) throw e;
+          continue;
+        }
+      }
+      if (!success) throw lastErr;
+      text = text!;
+    } catch (e: any) {
+      const msg = e?.message || String(e);
+      // Graceful fallback to demo on quota/model errors — still grounded
+      if (msg.includes("quota") || msg.includes("429") || msg.includes("RESOURCE_EXHAUSTED") || msg.includes("not found") || msg.includes("fetch failed")) {
+        const fallback = demoFallbackResponse(message, language);
+        const enriched = fallback.recommendations.map((r: any) => {
+          const full = (schemes as any[]).find((s) => s.id === r.schemeId);
+          return { scheme: full, score: r.score, matchingFactors: r.matchingFactors, reason: r.reason };
+        });
+        return new Response(JSON.stringify({ success: true, answer: fallback.answer + " (Quota fallback — demo grounded)", matches: enriched, model: "demo-fallback-quota", groundedSchemes: 94, groundedIds: enriched.map((e:any)=>e.scheme.id), warning: msg.slice(0,300) }), { status: 200, headers: { "Content-Type": "application/json" } });
+      }
+      throw e;
+    }
 
     // Try parse JSON from Gemini; fallback to text
     let parsedJson: any = null;
@@ -86,7 +118,7 @@ export async function POST(request: Request) {
       return { scheme: full, score: r.score ?? 0.8, matchingFactors: r.matchingFactors || [], reason: r.reason || "" };
     }).filter(Boolean);
 
-    return new Response(JSON.stringify({ success: true, answer, matches, raw: parsedJson ? undefined : text, model: GEMINI_MODEL, groundedSchemes: top.length, groundedIds: top.map((t)=> t.scheme.id), retrieval: "text-embedding-004 + cosine (fallback keyword)" }), { status: 200, headers: { "Content-Type": "application/json" } });
+    return new Response(JSON.stringify({ success: true, answer, matches, raw: parsedJson ? undefined : text, model: usedModel, groundedSchemes: top.length, groundedIds: top.map((t)=> t.scheme.id), retrieval: "text-embedding-004 + cosine (fallback keyword)" }), { status: 200, headers: { "Content-Type": "application/json" } });
   } catch (e: any) {
     console.error("AI chat error", e);
     const msg = e?.message || String(e);
