@@ -14,6 +14,12 @@ const schema = z.object({
 });
 
 export async function POST(request: Request) {
+  let message = "";
+  let language = "en";
+  let history: any[] | undefined;
+  let income: number | undefined;
+  let state: string | undefined;
+  let category: string | undefined;
   try {
     const ip = getClientIp(request);
     if (!checkRateLimit(`ai_chat:${ip}`, 20, 60 * 1000)) {
@@ -22,8 +28,12 @@ export async function POST(request: Request) {
     const body = await request.json();
     const parsed = schema.safeParse(body);
     if (!parsed.success) return new Response(JSON.stringify({ success: false, error: parsed.error.issues[0].message }), { status: 400, headers: { "Content-Type": "application/json" } });
-    const { message, history, income, state, category } = parsed.data;
-    const language = "en";
+    message = parsed.data.message;
+    history = parsed.data.history;
+    income = parsed.data.income;
+    state = parsed.data.state;
+    category = parsed.data.category;
+    language = "en";
 
     // Demo mode without key — still shows grounded structure to judges
     const genAI = getGemini();
