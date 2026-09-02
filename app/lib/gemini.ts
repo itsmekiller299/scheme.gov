@@ -4,8 +4,8 @@ import schemes from "@/app/data/schemes.json";
 
 // Central helper for all Gemini usage — single source of truth for judges.
 // Judges checklist: which Gemini model, how it is central, grounding source.
-export const GEMINI_MODEL = process.env.GEMINI_MODEL || "gemini-2.5-flash";
-export const GEMINI_FALLBACK_MODEL = "gemini-2.0-flash";
+export const GEMINI_MODEL = process.env.GEMINI_MODEL || "gemini-3-flash-preview";
+export const GEMINI_FALLBACK_MODEL = "gemini-flash-latest";
 export const GEMINI_EMBEDDING_MODEL = "text-embedding-004";
 export const SCHEMES_COUNT = schemes.length;
 
@@ -18,16 +18,16 @@ export function isPlaceholderKey(k: string): boolean {
 export function hasGeminiKey(): boolean {
   const k = getRawKey();
   if (isPlaceholderKey(k)) return false;
-  // Real Google AI Studio keys start with AIza (39 chars). Allow also future prefixes.
-  return k.startsWith("AIza") && k.length >= 30;
+  // Accept both legacy AIza... and newer AQ.... keys (both valid for generativelanguage.googleapis.com) + generic 30char
+  if (k.length < 30) return false;
+  return k.startsWith("AIza") || k.startsWith("AQ.") || k.length >= 35;
 }
 export function hasValidGeminiKey(): boolean { return hasGeminiKey(); }
 export function getKeyDiagnostics(): { hasKey: boolean; keyPrefix: string; keyLen: number; reason: string } {
   const k = getRawKey();
   if (!k) return { hasKey: false, keyPrefix: "", keyLen: 0, reason: "GEMINI_API_KEY not set. Get at https://aistudio.google.com/app/apikey" };
   if (k.includes("xxxxxxxx")) return { hasKey: false, keyPrefix: k.slice(0,4), keyLen: k.length, reason: "Placeholder key — replace AIza-xxxx with real key from aistudio.google.com" };
-  if (!k.startsWith("AIza")) return { hasKey: false, keyPrefix: k.slice(0,4), keyLen: k.length, reason: "Key must start with AIza (Google AI Studio). Check copy-paste." };
-  if (k.length < 30) return { hasKey: false, keyPrefix: k.slice(0,4), keyLen: k.length, reason: "Key too short — truncated? Complete key length ~39." };
+  if (k.length < 30) return { hasKey: false, keyPrefix: k.slice(0,4), keyLen: k.length, reason: "Key too short — truncated? Complete key length ~35-53." };
   return { hasKey: true, keyPrefix: k.slice(0,7), keyLen: k.length, reason: "OK" };
 }
 
